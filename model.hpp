@@ -40,7 +40,7 @@ class Model {
 
     /**
      * The main update function for the model
-     * called at each time step.
+     * called at each time step? every year
      *
      * This is optimised to reduce the number of loops through
      * the population of fish
@@ -50,7 +50,8 @@ class Model {
         bool burnin = (y < Years_min);
 
         // Reset the monitoring counts
-        if (not burnin) monitor.reset();
+        if (not burnin)
+        	monitor.reset();
 
         /*****************************************************************
          * Spawning and recruitment
@@ -70,6 +71,7 @@ class Model {
                 recruit.born(Region(region.index()));
 
                 // Find a "slot" in population to insert this recruit
+                // An empty 'slot' is created when previous fish in the partition die.
                 // If no empty slot found add to end of fish population
                 while (slot < fishes.size()) {
                     if (not fishes[slot].alive()) {
@@ -97,13 +99,15 @@ class Model {
                     fish.movement();
                     fish.shedding();
 
-                    if (not burnin) monitor.population(fish);
+                    if (not burnin)
+                    	monitor.population(fish);
                 }
             }
         }
 
         // Don't go further if in burn in
-        if (burnin) return;
+        if (burnin)
+        	return;
 
 
         /*****************************************************************
@@ -246,7 +250,8 @@ class Model {
         // wanted `seed_number` of individuals in equilibrium
         fishes.recruitment_mode = 'p';
         double number = 0;
-        for (int age = 0; age < 200; age++) number += std::exp(-parameters.fishes_m*age);
+        for (int age = 0; age < 200; age++)
+        	number += std::exp(-parameters.fishes_m*age);
         for (auto region : regions) {
             fishes.recruitment_pristine(region) = 
                 parameters.fishes_seed_number/number *
@@ -257,10 +262,27 @@ class Model {
         // Burn in
         // TODO Currently just burns in for an arbitarty number of iterations
         // Should instead exit when stability in population characteristics
+        // Stability is defined as total biomass
+        std::vector<unsigned> steps_to_check = {40,60,80,100};
+        double equilibrium_tolerance = 0.1; // TODO might want to play with this number and the one above
+        steps_to_check.size();
+        double initial_biomass = 0;
         int steps = 0;
-        while (steps<100) {
+        while (steps < 100) {
+        	fishes.biomass_update();
+        	initial_biomass = fishes.biomass;
+        	//std::cerr << "biomass = " << initial_biomass << "\n";
             update();
-            if (callback) (*callback)();
+        	if (std::find(steps_to_check.begin(),steps_to_check.end(),steps) != steps_to_check.end()) {
+        		// Check convergence tolerance
+        		//std::cerr << "checking convergence at iteration " << steps << "\n";
+            	fishes.biomass_update();
+            	//std::cerr << "initial biomass = " << initial_biomass << " current biomass = " << fishes.biomass << " diff = " << fishes.biomass - initial_biomass << "\n";
+            	if (std::fabs(fishes.biomass - initial_biomass) > equilibrium_tolerance)
+            		break;
+        	}
+            if (callback)
+            	(*callback)();
             steps++;
             now++;
         }
@@ -290,10 +312,13 @@ class Model {
      * @param      callback  The callback function (can be used to output)
      */
     void run(Time start, Time finish, std::function<void()>* callback = 0, int initial = 0) {
-        // Create initial population of fish
-        if (initial == 0) pristine(start, callback);
-        else fishes.seed(1e6);
-        // Iterate over times
+        // Create initial population of fish or add a million fish, not sure if that else is ever called though
+    	// the
+        if (initial == 0)
+        	pristine(start, callback);
+        else
+        	fishes.seed(1e6);
+        // Iterate over years
         now = start;
         while (now <= finish) {
             update();
