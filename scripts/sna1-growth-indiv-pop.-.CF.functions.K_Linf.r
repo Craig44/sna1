@@ -129,6 +129,6 @@ lines(ages,length_vb_age, col="blue",lwd=2)
 
 # Histograms of length at age
 par(mfrow=c(3,1))
-hist(fishes[,(5*steps+1)],breaks=30,main='5+',xlab='Length (cm)')
-hist(fishes[,(10*steps+1)],breaks=30,main='10+',xlab='Length (cm)')
-hist(fishes[,(25*steps+1)],breaks=30,main='25+',xlab='Length (cm)')
+hist(fishes[,(5*steps+1)],breaks=30,main='5+',xlab='Length (cm)', xlim = c(0,80))
+hist(fishes[,(10*steps+1)],breaks=30,main='10+',xlab='Length (cm)', xlim = c(0,80))
+hist(fishes[,(25*steps+1)],breaks=30,main='25+',xlab='Length (cm)', xlim = c(0,80))

@@ -50,9 +50,9 @@ class Model {
         bool burnin = (y < Years_min);
 
         // Reset the monitoring counts
-        if (not burnin)
+        if (not burnin) {
         	monitor.reset();
-
+        }
         /*****************************************************************
          * Spawning and recruitment
          ****************************************************************/
@@ -239,10 +239,15 @@ class Model {
     /**
      * Take the population to pristine equilibium
      *
-     * This method simply calls `equilibrium()` and then sets population level attributes
+     * This method simply calls `update()` and then sets population level attributes
      * like `biomass_spawners_pristine` and `scalar`
      */
     void pristine(Time time, std::function<void()>* callback = 0){
+
+        if (parameters.debug) {
+            std::cerr << "entering pristine: " << "yes" << std::endl;
+        }
+
         // Set `now` to some arbitrary time (but high enough that fish
         // will have a birth time (uint) greater than 0)
         now = 200;
@@ -264,11 +269,11 @@ class Model {
         // Should instead exit when stability in population characteristics
         // Stability is defined as total biomass
         std::vector<unsigned> steps_to_check = {40,60,80,100};
-        double equilibrium_tolerance = 0.1; // TODO might want to play with this number and the one above
+        double equilibrium_tolerance = 100; // TODO might want to play with this number and the one above
         steps_to_check.size();
         double initial_biomass = 0;
         int steps = 0;
-        while (steps < 100) {
+        while (steps < 200) {
         	fishes.biomass_update();
         	initial_biomass = fishes.biomass;
         	//std::cerr << "biomass = " << initial_biomass << "\n";
@@ -314,6 +319,13 @@ class Model {
     void run(Time start, Time finish, std::function<void()>* callback = 0, int initial = 0) {
         // Create initial population of fish or add a million fish, not sure if that else is ever called though
     	// the
+
+        // I am going to pipe out my debug report to the log file
+        if (parameters.debug) {
+            std::cerr << "message: " << "value" << std::endl;
+            std::verr << "initial: " << initial << std::endl;
+        }
+
         if (initial == 0)
         	pristine(start, callback);
         else

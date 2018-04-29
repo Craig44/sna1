@@ -25,6 +25,11 @@ class Monitor {
     Array<double, Years, Regions> biomass_spawners;
 
     /**
+     * SSB in initial state-this is for debugging (delete)
+     */
+    //Array<double, unsigned int, Regions> initial_spawners;
+
+    /**
      * Catches by year, region and method
      */
     Array<double, Years, Regions, Methods> catches;
@@ -182,6 +187,9 @@ class Monitor {
 
         std::ofstream biomass_file(casal_directory + "/biomass.tsv");
         biomass_file << "year\tregion\tbiomass\n";
+
+        std::ofstream initial_spawners_file(casal_directory + "/initial_spawners.tsv");
+        initial_spawners_file << "burni_in\tregion\tbiomass\n";
         
         std::ofstream cpue_file(casal_directory + "/cpue.tsv");
         cpue_file<<"year\tregion\tmethod\tcpue\n";

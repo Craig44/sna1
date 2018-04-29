@@ -14,7 +14,7 @@
 class MonitoringComponents : public std::string {
  public:
 
-    bool C, L, A;
+    bool C, L, A; // C = CPUE, L = Commercial length Frequencies, A = Commercial Age Frequencies
 
     MonitoringComponents(const char* value = ""):
         std::string(value) {
@@ -45,6 +45,9 @@ class Parameters : public Structure<Parameters> {
      * during development. Should be increased for final runs.
      */
     unsigned int fishes_seed_number = 1e6;
+
+    // A debug variable to help me understand this program
+    bool debug = false;
 
     Uniform fishes_seed_region_dist;
 
@@ -281,7 +284,8 @@ class Parameters : public Structure<Parameters> {
         fishes_k_dist = Lognormal(fishes_k_mean, fishes_k_sd);
         fishes_linf_dist = Lognormal(fishes_linf_mean, fishes_linf_sd);
 
-        for (auto& item : monitoring_programme) item.update();
+        for (auto& item : monitoring_programme)
+          item.update();
     }
 
     void finalise(void) {
@@ -299,10 +303,12 @@ class Parameters : public Structure<Parameters> {
         tagging_scanning.write("output/tagging_scanning.tsv");
     }
 
+    // This translates the json parameters into the objects.
     template<class Mirror>
     void reflect(Mirror& mirror){
         mirror
             .data(fishes_seed_number, "fishes_seed_number")
+            .data(debug, "debug")
             .data(fishes_seed_z, "fishes_seed_z")
             
             .data(fishes_steepness, "fishes_steepness")
