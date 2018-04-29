@@ -10,7 +10,7 @@ int main(int argc, char** argv) {
             task = argv[1];
         }
         if (task == "run") {
-            std::cout << "year\tfish\tstatus\texprate\n";
+            std::cout << "year\tfish(millions)\tstatus(%B0)\texprate\n";
             std::cout << std::setprecision(2);
             std::function<void()> callback([&](){
                 std::cout

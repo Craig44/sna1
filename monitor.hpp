@@ -25,6 +25,11 @@ class Monitor {
     Array<double, Years, Regions> biomass_spawners;
 
     /**
+     * number of Recruits by year, region and method
+     */
+    Array<uint, Years, Regions> recruits;
+
+    /**
      * SSB in initial state-this is for debugging (delete)
      */
     //Array<double, unsigned int, Regions> initial_spawners;
@@ -122,6 +127,12 @@ class Monitor {
         for (auto region : regions) {
             biomass_spawners(y, region) = fishes.biomass_spawners(region);
         }   
+
+        // Record number of recruits
+        for (auto region : regions) {
+            recruits(y, region) = fishes.recruitment_instances(region);
+        }
+
         // Record catches
         for (auto region : regions) {
             for (auto method : methods) {
@@ -188,6 +199,9 @@ class Monitor {
         std::ofstream biomass_file(casal_directory + "/biomass.tsv");
         biomass_file << "year\tregion\tbiomass\n";
 
+        std::ofstream recruit_file(casal_directory + "/recruits.tsv");
+        recruit_file << "year\tregion\trecruits\n";
+
         std::ofstream initial_spawners_file(casal_directory + "/initial_spawners.tsv");
         initial_spawners_file << "burni_in\tregion\tbiomass\n";
         
@@ -219,6 +233,11 @@ class Monitor {
                     << year << "\t"
                     << region_code(region) << "\t"
                     << biomass_spawners(year, region) << "\n";
+
+                recruit_file
+                    << year << "\t"
+                    << region_code(region) << "\t"
+                    << recruits(year, region) << "\n";
 
                 for (auto method : methods) {
                     catch_file

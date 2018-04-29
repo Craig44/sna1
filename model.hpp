@@ -250,40 +250,56 @@ class Model {
 
         // Set `now` to some arbitrary time (but high enough that fish
         // will have a birth time (uint) greater than 0)
-        now = 200;
+        now = 1;
         // Keep recruitment fixed at a constant level that will produce the
         // wanted `seed_number` of individuals in equilibrium
         fishes.recruitment_mode = 'p';
         double number = 0;
         for (int age = 0; age < 200; age++)
         	number += std::exp(-parameters.fishes_m*age);
+
+        if (parameters.debug) {
+            std::cerr << "number: " << number << std::endl;
+        }
+
         for (auto region : regions) {
             fishes.recruitment_pristine(region) = 
                 parameters.fishes_seed_number/number *
                 parameters.fishes_b0(region)/sum(parameters.fishes_b0);
+            if (parameters.debug) {
+                std::cerr << "Pristine recruits " << Region(region.index()) << ": " << fishes.recruitment_pristine(region) << std::endl;
+            }
         }
+        // start by seeding fishes scalar = 1, find out where this gets updated through out the code
         fishes.scalar = 1;
         fishes.seed(parameters.fishes_seed_number);
         // Burn in
         // TODO Currently just burns in for an arbitarty number of iterations
         // Should instead exit when stability in population characteristics
         // Stability is defined as total biomass
-        std::vector<unsigned> steps_to_check = {40,60,80,100};
-        double equilibrium_tolerance = 100; // TODO might want to play with this number and the one above
+        std::vector<unsigned> steps_to_check = {50,100,150,200};
+        double equilibrium_tolerance = 0.01; // TODO might want to play with this number and the one above
         steps_to_check.size();
         double initial_biomass = 0;
         int steps = 0;
-        while (steps < 200) {
+        while (steps < 150) {
         	fishes.biomass_update();
         	initial_biomass = fishes.biomass;
-        	//std::cerr << "biomass = " << initial_biomass << "\n";
+        	if (parameters.debug) {
+        	    std::cerr << "initial_biomass in step " << steps << ": " << initial_biomass << "\n";
+        	}
+        	// run the time step
             update();
         	if (std::find(steps_to_check.begin(),steps_to_check.end(),steps) != steps_to_check.end()) {
         		// Check convergence tolerance
         		//std::cerr << "checking convergence at iteration " << steps << "\n";
             	fishes.biomass_update();
-            	//std::cerr << "initial biomass = " << initial_biomass << " current biomass = " << fishes.biomass << " diff = " << fishes.biomass - initial_biomass << "\n";
-            	if (std::fabs(fishes.biomass - initial_biomass) > equilibrium_tolerance)
+            	if (parameters.debug) {
+            	    std::cerr << "current biomass: " << fishes.biomass << std::endl;
+            	    std::cerr << "diff: " << std::fabs(fishes.biomass - initial_biomass) << "\n";
+            	}
+
+            	if (std::fabs(fishes.biomass - initial_biomass) < equilibrium_tolerance)
             		break;
         	}
             if (callback)
@@ -302,6 +318,9 @@ class Model {
         // Set scalar so that the current spawner biomass 
         // matches the intended value
         fishes.scalar = sum(parameters.fishes_b0)/sum(fishes.biomass_spawners);
+        if (parameters.debug) {
+            std::cerr << "update scalar: " << fishes.scalar << std::endl;
+        }
         // Adjust accordingly
         fishes.biomass_spawners *= fishes.scalar;
         fishes.recruitment_pristine *= fishes.scalar;
@@ -323,13 +342,15 @@ class Model {
         // I am going to pipe out my debug report to the log file
         if (parameters.debug) {
             std::cerr << "message: " << "value" << std::endl;
-            std::verr << "initial: " << initial << std::endl;
+            std::cerr << "initial: " << initial << std::endl;
         }
 
-        if (initial == 0)
+        if (initial == 0) {
         	pristine(start, callback);
-        else
+        } else {
+            // Currently as this code stands this will never get executed perhaps ask someone the purpose of this
         	fishes.seed(1e6);
+        }
         // Iterate over years
         now = start;
         while (now <= finish) {
