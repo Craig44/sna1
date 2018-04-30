@@ -9,6 +9,7 @@
 #include "harvest.hpp"
 #include "monitor.hpp"
 
+using namespace std;
 /**
  * The model
  *
@@ -90,17 +91,35 @@ class Model {
         /*****************************************************************
          * Fish population dynamics
          ****************************************************************/
+        if (burnin) {
+            // If in burn-in take all of M now, else only take half
+            for (Fish& fish : fishes) {
+                if (fish.alive()) {
+                    // This is only half M, I am going to repeat this
+                    if (fish.survival()) {
+                        fish.growth();
+                        fish.maturation();
+                        fish.movement();
+                        fish.shedding();
 
-        for (Fish& fish : fishes) {
-            if (fish.alive()) {
-                if (fish.survival()) {
-                    fish.growth();
-                    fish.maturation();
-                    fish.movement();
-                    fish.shedding();
+                        if (not burnin)
+                            monitor.population(fish);
+                    }
+                }
+            }
+        } else {
+            for (Fish& fish : fishes) {
+                if (fish.alive()) {
+                    // This is only half M, I am going to repeat this
+                    if (fish.half_survival()) {
+                        fish.growth();
+                        fish.maturation();
+                        fish.movement();
+                        fish.shedding();
 
-                    if (not burnin)
-                    	monitor.population(fish);
+                        if (not burnin)
+                            monitor.population(fish);
+                    }
                 }
             }
         }
@@ -151,8 +170,8 @@ class Model {
             }
             // Escape if too many trials
             if (trials++ > fishes.size() * 100) {
-                std::cerr << trials << " " << releases_done << " " << releases_targetted << std::endl;
-                throw std::runtime_error("Too many attempts to tag fish. Something is probably wrong.");
+                cerr << trials << " " << releases_done << " " << releases_targetted << endl;
+                throw runtime_error("Too many attempts to tag fish. Something is probably wrong.");
             }
         }
 
@@ -171,9 +190,13 @@ class Model {
         double catch_taken = 0;
         double catch_observed = sum(harvest.catch_observed);
 
+
         // If there was observed catch then randomly draw fish and "assign" them with varying probabilities
         // to a particular region/method catch
         while(catch_observed > 0) {
+            if (parameters.debug) {
+                cerr << "Entering mortality process: yes" << endl;
+            }
             // Randomly choose a fish
             Fish& fish = fishes[chance()*fishes.size()];
             // If the fish is alive, then...
@@ -189,6 +212,14 @@ class Model {
                     auto boldness = (method == fish.method_last) ? (1 - parameters.fishes_shyness(method)) : 1;
                     if (chance() < selectivity * boldness) {
                         // Is this fish greater than the MLS and thus retained?
+                        // knife edge selectivity...
+                        // Consider adding a general formula for all selectivities
+                        if (parameters.debug) {
+                            cerr << "Agent length: " << fish.length_bin() << endl;
+                        }
+
+
+
                         if (fish.length >= parameters.harvest_mls(method)) {
                             // Kill the fish
                             fish.dies();
@@ -220,11 +251,18 @@ class Model {
                 }
                 harvest.attempts++;
                 if (harvest.attempts > fishes.size() * 100) {
-                    std::cerr << y << std::endl
-                              << "Catch taken so far:\n" << harvest.catch_taken << std::endl
-                              << "Catch observed:\n" << harvest.catch_observed << std::endl;
-                    throw std::runtime_error("Too many attempts to take catch. Something is probably wrong.");
+                    cerr << y << endl
+                              << "Catch taken so far:\n" << harvest.catch_taken << endl
+                              << "Catch observed:\n" << harvest.catch_observed << endl;
+                    throw runtime_error("Too many attempts to take catch. Something is probably wrong.");
                 };
+            }
+        }
+
+        // Take the last half M
+        for (Fish& fish : fishes) {
+            if (fish.alive()) {
+                fish.half_survival();
             }
         }
 
@@ -242,10 +280,10 @@ class Model {
      * This method simply calls `update()` and then sets population level attributes
      * like `biomass_spawners_pristine` and `scalar`
      */
-    void pristine(Time time, std::function<void()>* callback = 0){
+    void pristine(Time time, function<void()>* callback = 0){
 
         if (parameters.debug) {
-            std::cerr << "entering pristine: " << "yes" << std::endl;
+            cerr << "entering pristine: " << "yes" << endl;
         }
 
         // Set `now` to some arbitrary time (but high enough that fish
@@ -259,7 +297,7 @@ class Model {
         	number += std::exp(-parameters.fishes_m*age);
 
         if (parameters.debug) {
-            std::cerr << "number: " << number << std::endl;
+            cerr << "number: " << number << endl;
         }
 
         for (auto region : regions) {
@@ -267,7 +305,7 @@ class Model {
                 parameters.fishes_seed_number/number *
                 parameters.fishes_b0(region)/sum(parameters.fishes_b0);
             if (parameters.debug) {
-                std::cerr << "Pristine recruits " << Region(region.index()) << ": " << fishes.recruitment_pristine(region) << std::endl;
+                cerr << "Pristine recruits " << Region(region.index()) << ": " << fishes.recruitment_pristine(region) << endl;
             }
         }
         // start by seeding fishes scalar = 1, find out where this gets updated through out the code
@@ -286,20 +324,20 @@ class Model {
         	fishes.biomass_update();
         	initial_biomass = fishes.biomass;
         	if (parameters.debug) {
-        	    std::cerr << "initial_biomass in step " << steps << ": " << initial_biomass << "\n";
+        	    cerr << "initial_biomass in step " << steps << ": " << initial_biomass << "\n";
         	}
         	// run the time step
             update();
-        	if (std::find(steps_to_check.begin(),steps_to_check.end(),steps) != steps_to_check.end()) {
+        	if (find(steps_to_check.begin(),steps_to_check.end(),steps) != steps_to_check.end()) {
         		// Check convergence tolerance
         		//std::cerr << "checking convergence at iteration " << steps << "\n";
             	fishes.biomass_update();
             	if (parameters.debug) {
-            	    std::cerr << "current biomass: " << fishes.biomass << std::endl;
-            	    std::cerr << "diff: " << std::fabs(fishes.biomass - initial_biomass) << "\n";
+            	    cerr << "current biomass: " << fishes.biomass << endl;
+            	    cerr << "diff: " << fabs(fishes.biomass - initial_biomass) << "\n";
             	}
 
-            	if (std::fabs(fishes.biomass - initial_biomass) < equilibrium_tolerance)
+            	if (fabs(fishes.biomass - initial_biomass) < equilibrium_tolerance)
             		break;
         	}
             if (callback)
@@ -319,7 +357,7 @@ class Model {
         // matches the intended value
         fishes.scalar = sum(parameters.fishes_b0)/sum(fishes.biomass_spawners);
         if (parameters.debug) {
-            std::cerr << "update scalar: " << fishes.scalar << std::endl;
+            cerr << "update scalar: " << fishes.scalar << endl;
         }
         // Adjust accordingly
         fishes.biomass_spawners *= fishes.scalar;

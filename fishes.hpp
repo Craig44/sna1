@@ -209,10 +209,19 @@ class Fish {
     }
 
     /**
-     * Does this fish survive this time step?
+     * Does this fish survive half natural mortality this time step?
      */
     bool survival(void) {
         auto survives = chance() > parameters.fishes_m_rate;
+        if (not survives) dies();
+        return survives;
+    }
+
+    /**
+     * Does this fish survive this time step?
+     */
+    bool half_survival(void) {
+        auto survives = chance() > parameters.fishes_half_m_rate;
         if (not survives) dies();
         return survives;
     }

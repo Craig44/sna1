@@ -98,6 +98,7 @@ class Parameters : public Structure<Parameters> {
      * in a time step. Derived from `fishes_m` in `initialise()`
      */
     double fishes_m_rate;
+    double fishes_half_m_rate;
 
     /**
      * Length-weight relation
@@ -280,6 +281,7 @@ class Parameters : public Structure<Parameters> {
         fishes_seed_age_dist = Exponential(fishes_seed_z);
 
         fishes_m_rate = 1 - std::exp(-fishes_m);
+        fishes_half_m_rate = 1 - std::exp(-0.5 * fishes_m);
 
         fishes_k_dist = Lognormal(fishes_k_mean, fishes_k_sd);
         fishes_linf_dist = Lognormal(fishes_linf_mean, fishes_linf_sd);
