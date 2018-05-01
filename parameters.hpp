@@ -49,6 +49,11 @@ class Parameters : public Structure<Parameters> {
     // A debug variable to help me understand this program
     bool debug = false;
 
+    /**
+     * Input variable which defines whether selectivity is age based or length based
+     */
+    bool length_based_selectivity = false;
+
     Uniform fishes_seed_region_dist;
 
     /**
@@ -311,6 +316,8 @@ class Parameters : public Structure<Parameters> {
         mirror
             .data(fishes_seed_number, "fishes_seed_number")
             .data(debug, "debug")
+            .data(length_based_selectivity, "length_based_selectivity")
+
             .data(fishes_seed_z, "fishes_seed_z")
             
             .data(fishes_steepness, "fishes_steepness")

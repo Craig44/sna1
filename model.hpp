@@ -211,15 +211,7 @@ class Model {
                     auto selectivity = harvest.selectivity_at_length(method, fish.length_bin());
                     auto boldness = (method == fish.method_last) ? (1 - parameters.fishes_shyness(method)) : 1;
                     if (chance() < selectivity * boldness) {
-                        // Is this fish greater than the MLS and thus retained?
-                        // knife edge selectivity...
-                        // Consider adding a general formula for all selectivities
-                        if (parameters.debug) {
-                            cerr << "Agent length: " << fish.length_bin() << endl;
-                        }
-
-
-
+                    	// An additional step of fish we keep only above mls
                         if (fish.length >= parameters.harvest_mls(method)) {
                             // Kill the fish
                             fish.dies();

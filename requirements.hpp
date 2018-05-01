@@ -22,6 +22,7 @@ using Stencila::Dimension;
 using Stencila::Array;
 #include <stencila/query.hpp>
 using namespace Stencila::Queries;
+using namespace std;
 using Stencila::StandardDeviation;
 #include <stencila/structure.hpp>
 using Stencila::Structure;
