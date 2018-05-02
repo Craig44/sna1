@@ -1,6 +1,5 @@
 ### Confidence interval calc function
 ci<- function(x,ci) {
-  
   x<-x[order(x)]
   y<-(1-ci)/2
   lci <-round(length(x)*y,0)
@@ -39,10 +38,17 @@ cv <- 0.2
 ## need to generate k and Linf as longnormal random deviates assumes k comes from a lognormal distribution with mean = k and variance = v  
 # in log space log(k) come from a normal distribution with mean = 'u' and standard deviation 's' calculated as follows:
 
-
 v=(k*cv)^2 #varaiance of k
 
-u = log(k^2/sqrt(v +k^2)) # mean of log(k)
+sigma = sqrt(log(1+cv^2))
+new_v = sigma^2
+
+dist = exp(rnorm(n,log(k), sigma) - 0.5*sigma^2)
+hist(dist)
+abline(v = k, col = "red", lwd = 2)
+
+
+u = log(k^2/sqrt(v + k^2)) # mean of log(k)
 s= sqrt(log(v/k^2 +1)) # stdev of log(k)
 
 Ks <-exp(rnorm(n,u,s)) # k lognormal random deviates
@@ -52,6 +58,15 @@ nsamp = 10000000
 Ktest<- exp(rnorm(nsamp,u,s))
 mean(Ktest) #mean
 sd(Ktest)/mean(Ktest) #cv
+
+dist = exp(rnorm(nsamp,log(k), sigma) - 0.5*sigma^2)
+
+## compare
+x1 = density(Ktest)
+x2 = density(dist)
+
+plot(x1$x,x1$y, xlab = "k", yaxt = "n", ylab = "", type = "l", lwd = 2)
+lines(x2$x,x2$y,col = "red", lwd = 2)
 
 
 # Linf

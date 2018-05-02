@@ -16,7 +16,7 @@ class Harvest {
     /**
      * Selectivity by method for each age bin
      */
-    Array<double, Methods, Lengths> selectivity_at_age;
+    Array<double, Methods, Ages> selectivity_at_age;
 
     /**
      * Current vulnerable biomass by method
@@ -26,6 +26,10 @@ class Harvest {
     Array<double, Regions, Methods> catch_observed;
 
     Array<double, Regions, Methods> catch_taken;
+
+    // A container just for reporting purposes
+    Array<double, Regions, Methods, Years> catch_taken_by_year;
+
 
     uint attempts;
 
@@ -48,6 +52,18 @@ class Harvest {
 				}
         	} else {
 				for (auto age : ages) {
+
+                    double p = 0;
+                    if (age <= 4) p = 0;
+                    else if (age == 5)
+                        p = 0.5;
+                    else
+                        p = 1;
+                    selectivity_at_age(method,age) = p;
+
+
+/*
+
 					auto steep1 = parameters.harvest_sel_steep1(method);
 					auto mode = parameters.harvest_sel_mode(method);
 					auto steep2 = parameters.harvest_sel_steep2(method);
@@ -57,6 +73,11 @@ class Harvest {
 					else
 						selectivity = std::pow(2,-std::pow((age.index()-mode)/steep2,2));
 					selectivity_at_age(method,age.index()) = selectivity;
+*/
+
+					if (parameters.debug) {
+					    cerr << "Method = " << method << " age = " <<  age.index() << ": " << selectivity_at_age(method,age.index()) << endl;
+					}
 
 				}
         	}
@@ -65,7 +86,7 @@ class Harvest {
 
     void biomass_vulnerable_update(const Fishes& fishes) {
         biomass_vulnerable = 0;
-        if (parameters.length_based_selectivity)
+        if (parameters.length_based_selectivity) {
 			for (const Fish& fish : fishes) {
 				if (fish.alive()) {
 					auto weight = fish.weight();
@@ -75,7 +96,7 @@ class Harvest {
 					}
 				}
 			}
-        else {
+        } else {
 			for (const Fish& fish : fishes) {
 				if (fish.alive()) {
 					auto weight = fish.weight();
@@ -102,12 +123,15 @@ class Harvest {
     }
 
     void finalise(void) {
+        // Report harvest info
+        // Selectivities
         boost::filesystem::create_directories("output/harvest");
         if (parameters.length_based_selectivity)
         	selectivity_at_length.write("output/harvest/selectivity_at_length.tsv");
         else
         	selectivity_at_age.write("output/harvest/selectivity_at_age.tsv");
-
+        // Actual removals
+        catch_taken_by_year.write("output/harvest/actual_catch.tsv");
     }
 
 };  // class Harvest

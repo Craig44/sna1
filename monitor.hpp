@@ -32,7 +32,7 @@ class Monitor {
     /**
      * SSB in initial state-this is for debugging (delete)
      */
-    //Array<double, unsigned int, Regions> initial_spawners;
+    Array<uint, Ages, Regions> initial_numbers_at_age;
 
     /**
      * Catches by year, region and method
@@ -119,6 +119,17 @@ class Monitor {
     }
 
     /**
+     * Update teh numbers at the end of the initial time step
+     * Passed Fishes by reference and
+     */
+    void update_initial_partition(const Fishes& fishes) {
+        for (auto fish : fishes) {
+            if (fish.alive()) {
+                initial_numbers_at_age(fish.age_bin(),fish.region)++;
+            }
+        }
+    }
+    /**
      * Update things at the end of each time start
      */
     void update(const Fishes& fishes, const Harvest& harvest) {
@@ -202,28 +213,39 @@ class Monitor {
         std::ofstream recruit_file(casal_directory + "/recruits.tsv");
         recruit_file << "year\tregion\trecruits\n";
 
-        std::ofstream initial_spawners_file(casal_directory + "/initial_spawners.tsv");
-        initial_spawners_file << "burni_in\tregion\tbiomass\n";
+        std::ofstream initial_numbers_at_age_file(casal_directory + "/initial_numbers_at_age.tsv");
+        initial_numbers_at_age_file << "age\tregion\tnumber_of_agents\n";
         
         std::ofstream cpue_file(casal_directory + "/cpue.tsv");
         cpue_file<<"year\tregion\tmethod\tcpue\n";
 
         std::ofstream age_file(casal_directory + "/age.tsv");
         age_file << "year\tregion\tmethod\t";
-        for(auto age : ages) age_file << "age" << age << "\t";
+        for(auto age : ages)
+            age_file << "age" << age << "\t";
         age_file << "\n";
 
         std::ofstream length_file(casal_directory + "/length.tsv");
         length_file << "year\tregion\tmethod\t";
-        for(auto length : lengths) length_file << "length" << length << "\t";
+        for(auto length : lengths)
+            length_file << "length" << length << "\t";
         length_file << "\n";
 
         // Override of `method_code` method to output `REC`
         auto method_code = [](Stencila::Level<Methods> method){
-            if (method == RE) return std::string("REC");
-            else return ::method_code(method);
+            if (method == RE)
+                return std::string("REC");
+            else
+                return ::method_code(method);
         };
 
+        // Initialisation quantities
+        for (auto region : regions) {
+            for (auto age : ages)
+                initial_numbers_at_age_file << age.index() << "\t" << region << "\t" << initial_numbers_at_age(age.index(),region)<< "\n";
+        }
+
+        // Year Specific quantities
         for (auto year : years) {
             auto components = parameters.monitoring_programme(year);
 
@@ -256,13 +278,15 @@ class Monitor {
 
                     if (components.A) {
                         age_file << year << "\t" << region_code(region) << "\t" << method_code(method) << "\t";
-                        for(auto age : ages) age_file << age_samples(year, region, method, age) << "\t";
+                        for(auto age : ages)
+                            age_file << age_samples(year, region, method, age) << "\t";
                         age_file << "\n";
                     }
 
                     if (components.L) {
                         length_file << year << "\t" << region_code(region) << "\t" << method_code(method) << "\t";
-                        for(auto length : lengths) length_file << length_samples(year, region, method, length) << "\t";
+                        for(auto length : lengths)
+                            length_file << length_samples(year, region, method, length) << "\t";
                         length_file << "\n";
                     }
                 }

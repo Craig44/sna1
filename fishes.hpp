@@ -45,6 +45,10 @@ class Fish {
      */
     float length;
 
+    /*
+     * Age
+     */
+    int actual_age;
     /**
      * Is this fish mature?
      */
@@ -175,6 +179,7 @@ class Fish {
      * we are parameterize if using `k` and `linf`
      */
     void growth_init(int age) {
+        actual_age = 0;
         // Get von Bert growth parameters from their distributions
         double k;
         double linf;
@@ -230,6 +235,10 @@ class Fish {
      * Increase the length of this fish
      */
     void growth(void) {
+        // Age needs to increment, otherwise this will cause a discrepency for age based models
+        // We are adding an anniual increment of growth which is pretty much the ageing process.
+        // But if we have age based processes such selectivity then, growth will differ from age.
+        actual_age++;
         // Calculate growth increment
         double incr;
         if (parameters.fishes_growth_model == 'l') {
@@ -245,17 +254,20 @@ class Fish {
             double kappa = std::pow(growth_alpha*(growth_alpha/growth_beta), length_alpha/(length_beta-length_alpha));
             incr = 1/lamda*log(1+ (lamda*kappa*exp(-lamda*length)));
         } else {
+            // Move this to initialise() TODO
             throw std::runtime_error("Unknown growth model: " + parameters.fishes_growth_model);
         }
         // Apply temporal variation in growth if needed
         if (parameters.fishes_growth_variation == 't' or parameters.fishes_growth_variation == 'm') {
             int sd = std::max(parameters.fishes_growth_temporal_sdmin, incr * parameters.fishes_growth_temporal_cv);
             incr += standard_normal_rand() * sd;
-            if (incr < parameters.fishes_growth_temporal_incrmin) incr = parameters.fishes_growth_temporal_incrmin;
+            if (incr < parameters.fishes_growth_temporal_incrmin)
+                incr = parameters.fishes_growth_temporal_incrmin;
         }
         // Add increment but ensure fish size does not go below zero
         length += incr;
-        if (length < 0) length = 0;
+        if (length < 0)
+            length = 0;
     }
 
     /**
@@ -407,15 +419,18 @@ class Fishes : public std::vector<Fish> {
         auto y = year(now);
         for(auto region : regions) {
             if (recruitment_mode == 'p') {
-                recruitment(region) = recruitment_pristine(region);
+                recruitment(region) = recruitment_pristine(region)/scalar;
             } else {
                 auto s = biomass_spawners(region);
-                auto r0 = recruitment_pristine(region);
+                auto r0 = recruitment_pristine(region)/scalar;
                 auto s0 = parameters.fishes_b0(region);
                 auto h = parameters.fishes_steepness;
                 auto determ = 4*h*r0*s/((5*h-1)*s+s0*(1-h));
 
                 double strength = parameters.fishes_rec_strengths(y, region);
+                if(parameters.debug) {
+                   cerr << "YCS in year " << now << ": " << strength << endl;
+                }
                 if (strength < 0) {
                     strength = Lognormal(1, parameters.fishes_rec_var).random();
                 }
@@ -423,7 +438,7 @@ class Fishes : public std::vector<Fish> {
                 recruitment(region) = determ * strength;
 
             }
-            recruitment_instances(region) = std::round(recruitment(region)/scalar);
+            recruitment_instances(region) = std::round(recruitment(region));
         }
     }
 
@@ -456,15 +471,18 @@ class Fishes : public std::vector<Fish> {
 
         // Generate some example growth trajectories for checking
         std::ofstream pars("output/fishes/growth_pars.tsv");
-        pars << "fish\tintercept\tslope\n";
+        pars << "fish\tintercept\tslope\tk\tL_inf\n";
         std::ofstream trajs("output/fishes/growth_trajs.tsv");
         trajs << "fish\ttime\tlength\tlength_new\n";
-        for (int index = 0; index < 100; index++) {
+        for (int index = 0; index < 1000; index++) {
             Fish fish;
             fish.born(HG);
             pars << index << "\t"
                  << fish.growth_intercept << "\t" 
-                 << fish.growth_slope << "\n";
+                 << fish.growth_slope << "\t"
+                 << -log(fish.growth_slope + 1) << "\t"
+                 << fish.growth_intercept / -fish.growth_slope << "\n";
+
             for (int time = 0; time < 50; time++) {
                 trajs << index << "\t"
                      << time << "\t"

@@ -50,6 +50,8 @@ class Model {
         auto y = year(now);
         bool burnin = (y < Years_min);
 
+        if (y == Years_min)
+            monitor.update_initial_partition(fishes);
         // Reset the monitoring counts
         if (not burnin) {
         	monitor.reset();
@@ -91,7 +93,7 @@ class Model {
         /*****************************************************************
          * Fish population dynamics
          ****************************************************************/
-        if (burnin) {
+//        if (burnin) {
             // If in burn-in take all of M now, else only take half
             for (Fish& fish : fishes) {
                 if (fish.alive()) {
@@ -107,6 +109,7 @@ class Model {
                     }
                 }
             }
+/*
         } else {
             for (Fish& fish : fishes) {
                 if (fish.alive()) {
@@ -123,6 +126,7 @@ class Model {
                 }
             }
         }
+*/
 
         // Don't go further if in burn in
         if (burnin)
@@ -191,72 +195,140 @@ class Model {
         double catch_observed = sum(harvest.catch_observed);
 
 
-        // If there was observed catch then randomly draw fish and "assign" them with varying probabilities
-        // to a particular region/method catch
-        while(catch_observed > 0) {
-            if (parameters.debug) {
-                cerr << "Entering mortality process: yes" << endl;
-            }
-            // Randomly choose a fish
-            Fish& fish = fishes[chance()*fishes.size()];
-            // If the fish is alive, then...
-            if (fish.alive()) {
-                auto region = fish.region;
+        if (parameters.debug) {
+            cerr << "Entering mortality process: yes" << endl;
+        }
+        if (parameters.length_based_selectivity) {
+            // If there was observed catch then randomly draw fish and "assign" them with varying probabilities
+            // to a particular region/method catch
+            while(catch_observed > 0) {
 
-                // Randomly choose a fishing method in the region the fish currently resides
-                auto method = Method(methods.select(chance()).index());
-                // If the catch for the method in the region is not yet caught...
-                if (harvest.catch_taken(region, method) < harvest.catch_observed(region, method)) {
-                    // Is this fish caught by this method?
-                    auto selectivity = harvest.selectivity_at_length(method, fish.length_bin());
-                    auto boldness = (method == fish.method_last) ? (1 - parameters.fishes_shyness(method)) : 1;
-                    if (chance() < selectivity * boldness) {
-                    	// An additional step of fish we keep only above mls
-                        if (fish.length >= parameters.harvest_mls(method)) {
-                            // Kill the fish
-                            fish.dies();
-                            
-                            // Add to catch taken for region/method
-                            double fish_biomass = fish.weight() * fishes.scalar;
-                            harvest.catch_taken(region, method) += fish_biomass;
-                            
-                            // Catch sampling, currently 100% sampling of catch
-                            monitor.catch_sample(region, method, fish);
+                // Randomly choose a fish
+                Fish& fish = fishes[chance()*fishes.size()];
+                // If the fish is alive, then...
+                if (fish.alive()) {
+                    auto region = fish.region;
 
-                            // Update total catch and quit if all taken
-                            catch_taken += fish_biomass;
-                            if (catch_taken >= catch_observed) break;
-
-                            // Is this fish scanned for a tag?
-                            if (chance() < parameters.tagging_scanning(y, region, method)) {
-                                monitor.tagging.scan(fish, method);
-                            }
-                        } else {
-                            // Does this fish die after released?
-                            if (chance() < parameters.harvest_handling_mortality) {
+                    // Randomly choose a fishing method in the region the fish currently resides
+                    auto method = Method(methods.select(chance()).index());
+                    // If the catch for the method in the region is not yet caught...
+                    if (harvest.catch_taken(region, method) < harvest.catch_observed(region, method)) {
+                        // Is this fish caught by this method?
+                        auto selectivity = harvest.selectivity_at_length(method, fish.length_bin());
+                        auto boldness = (method == fish.method_last) ? (1 - parameters.fishes_shyness(method)) : 1;
+                        if (chance() < selectivity * boldness) {
+                            // An additional step of fish we keep only above mls
+                            if (fish.length >= parameters.harvest_mls(method)) {
+                                // Kill the fish
                                 fish.dies();
+
+                                // Add to catch taken for region/method
+                                double fish_biomass = fish.weight() * fishes.scalar;
+                                harvest.catch_taken(region, method) += fish_biomass;
+                                harvest.catch_taken_by_year(region, method, y) += fish_biomass;
+
+                                // Catch sampling, currently 100% sampling of catch
+                                monitor.catch_sample(region, method, fish);
+
+                                // Update total catch and quit if all taken
+                                catch_taken += fish_biomass;
+                                if (catch_taken >= catch_observed) {
+                                    break;
+                                }
+
+                                // Is this fish scanned for a tag?
+                                if (chance() < parameters.tagging_scanning(y, region, method)) {
+                                    monitor.tagging.scan(fish, method);
+                                }
                             } else {
-                                fish.released(method);
+                                // Does this fish die after released?
+                                if (chance() < parameters.harvest_handling_mortality) {
+                                    fish.dies();
+                                } else {
+                                    fish.released(method);
+                                }
                             }
                         }
                     }
+                    harvest.attempts++;
+                    if (harvest.attempts > fishes.size() * 100) {
+                        cerr << y << endl
+                                  << "Catch taken so far:\n" << harvest.catch_taken << endl
+                                  << "Catch observed:\n" << harvest.catch_observed << endl;
+                        throw runtime_error("Too many attempts to take catch. Something is probably wrong.");
+                    };
                 }
-                harvest.attempts++;
-                if (harvest.attempts > fishes.size() * 100) {
-                    cerr << y << endl
-                              << "Catch taken so far:\n" << harvest.catch_taken << endl
-                              << "Catch observed:\n" << harvest.catch_observed << endl;
-                    throw runtime_error("Too many attempts to take catch. Something is probably wrong.");
-                };
+            }
+        } else {
+            // If there was observed catch then randomly draw fish and "assign" them with varying probabilities
+            // to a particular region/method catch
+            while(catch_observed > 0) {
+
+                // Randomly choose a fish
+                Fish& fish = fishes[chance()*fishes.size()];
+                // If the fish is alive, then...
+                if (fish.alive()) {
+                    auto region = fish.region;
+
+                    // Randomly choose a fishing method in the region the fish currently resides
+                    auto method = Method(methods.select(chance()).index());
+                    // If the catch for the method in the region is not yet caught...
+                    if (harvest.catch_taken(region, method) < harvest.catch_observed(region, method)) {
+                        // Is this fish caught by this method?
+                        auto selectivity = harvest.selectivity_at_age(method, fish.actual_age);
+                        auto boldness = (method == fish.method_last) ? (1 - parameters.fishes_shyness(method)) : 1;
+                        if (chance() < selectivity * boldness) {
+                            // An additional step of fish we keep only above mls
+                            //if (fish.length >= parameters.harvest_mls(method)) {
+                                // Kill the fish
+                                fish.dies();
+
+                                // Add to catch taken for region/method
+                                double fish_biomass = fish.weight() * fishes.scalar;
+                                harvest.catch_taken(region, method) += fish_biomass;
+                                harvest.catch_taken_by_year(region, method, y) += fish_biomass;
+
+                                // Catch sampling, currently 100% sampling of catch
+                                monitor.catch_sample(region, method, fish);
+
+                                // Update total catch and quit if all taken
+                                catch_taken += fish_biomass;
+                                if (catch_taken >= catch_observed)
+                                    break;
+
+                                // Is this fish scanned for a tag?
+                                if (chance() < parameters.tagging_scanning(y, region, method)) {
+                                    monitor.tagging.scan(fish, method);
+                                }
+                            //} else {
+                                // Does this fish die after released?
+                            //    if (chance() < parameters.harvest_handling_mortality) {
+                                    fish.dies();
+                            //    } else {
+                            //        fish.released(method);
+                            //    }
+                            //}
+                        }
+                    }
+                    harvest.attempts++;
+                    if (harvest.attempts > fishes.size() * 100) {
+                        cerr << y << endl
+                                  << "Catch taken so far:\n" << harvest.catch_taken << endl
+                                  << "Catch observed:\n" << harvest.catch_observed << endl;
+                        throw runtime_error("Too many attempts to take catch. Something is probably wrong.");
+                    };
+                }
             }
         }
 
         // Take the last half M
+/*
         for (Fish& fish : fishes) {
             if (fish.alive()) {
                 fish.half_survival();
             }
         }
+*/
 
         // Update harvest.biomass_vulnerable for use in monioring
         harvest.biomass_vulnerable_update(fishes);
@@ -312,7 +384,7 @@ class Model {
         steps_to_check.size();
         double initial_biomass = 0;
         int steps = 0;
-        while (steps < 150) {
+        while (steps < 200) {
         	fishes.biomass_update();
         	initial_biomass = fishes.biomass;
         	if (parameters.debug) {
@@ -384,6 +456,9 @@ class Model {
         // Iterate over years
         now = start;
         while (now <= finish) {
+            if (parameters.debug) {
+                cerr << "entering year: " << now << endl;
+            }
             update();
             if (callback) (*callback)();
             now++;

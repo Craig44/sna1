@@ -238,18 +238,19 @@ class Parameters : public Structure<Parameters> {
     void initialise(void) {
         // Defaults not defined above
         fishes_movement = 0;
-
+        // Knife edge
         for (auto age : ages) {
             double p = 0;
             if (age <= 4) p = 0;
-            else if (age == 5) p = 0.5;
-            else p = 1;
+            else if (age == 5)
+                p = 0.5;
+            else
+                p = 1;
             fishes_maturation(age) = p;
         }
-
-        harvest_sel_steep1(LL) = 2.76;
-        harvest_sel_mode(LL) = 30.47;
-        harvest_sel_steep2(LL) = 1000;
+        harvest_sel_steep1(LL) = 0.05;
+        harvest_sel_mode(LL) = 4.93954;
+        harvest_sel_steep2(LL) = 911.712;
         
         harvest_sel_steep1(BT) = 2.35;
         harvest_sel_mode(BT) = 29.39;
@@ -293,6 +294,13 @@ class Parameters : public Structure<Parameters> {
 
         for (auto& item : monitoring_programme)
           item.update();
+
+        if (debug) {
+            cerr << "K mean: " << fishes_k_mean << endl;
+            cerr << "K sd: " << fishes_k_sd << endl;
+            cerr << "L_inf: " << fishes_linf_mean << endl;
+
+        }
     }
 
     void finalise(void) {
