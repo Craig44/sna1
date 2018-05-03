@@ -89,14 +89,9 @@ sd(Ltest)/mean(Ltest)  #cv
 
 # For each fish calculate simulate growth
 fishes <- NULL
-
-
 for(fish in 1:n){
   # Calculate a and b for this fish
-  
-
   b<- -(1-exp(-Ks[fish]*t))
-
   a <- -Linfs[fish]*b
   
   # Simulate growth
@@ -126,7 +121,7 @@ uci<- function(x) return(ci(x,0.95)[2])
 upper_sd<- apply(fishes,2,uci)
 lower_sd<-apply(fishes,2,lci)
 
-par(mfrow=c(2,1))
+par(mfrow=c(2,1), mar = c())
 # Calculate vonB lengths at age
 length_vb_age <- linf * (1-exp(-k*ages))
 par(mfrow=c(2,1))

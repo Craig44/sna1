@@ -93,7 +93,7 @@ class Fish {
      * Get the age bin of this fish
      */
     int age_bin(void) const {
-        return ::age_bin(age());
+        return ::age_bin(actual_age);
     }
 
     /**

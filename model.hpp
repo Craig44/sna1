@@ -275,9 +275,14 @@ class Model {
                     // If the catch for the method in the region is not yet caught...
                     if (harvest.catch_taken(region, method) < harvest.catch_observed(region, method)) {
                         // Is this fish caught by this method?
-                        auto selectivity = harvest.selectivity_at_age(method, fish.actual_age);
+                        auto selectivity = harvest.selectivity_at_age(method, fish.age_bin());
+                        auto selectivity1 = harvest.selectivity_at_age(method, age_bin(fish.actual_age));
+
+                        if (parameters.debug)
+                            cerr << " method = " << method <<  "age_bin " << fish.age_bin() << " " <<  selectivity <<" fish actual age " <<  age_bin(fish.actual_age) << " selectivity = " << selectivity1 << endl;
+
                         auto boldness = (method == fish.method_last) ? (1 - parameters.fishes_shyness(method)) : 1;
-                        if (chance() < selectivity * boldness) {
+                        if (chance() <= selectivity1 * boldness) {
                             // An additional step of fish we keep only above mls
                             //if (fish.length >= parameters.harvest_mls(method)) {
                                 // Kill the fish
@@ -384,7 +389,7 @@ class Model {
         steps_to_check.size();
         double initial_biomass = 0;
         int steps = 0;
-        while (steps < 200) {
+        while (steps < 150) {
         	fishes.biomass_update();
         	initial_biomass = fishes.biomass;
         	if (parameters.debug) {

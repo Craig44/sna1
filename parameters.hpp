@@ -241,16 +241,17 @@ class Parameters : public Structure<Parameters> {
         // Knife edge
         for (auto age : ages) {
             double p = 0;
-            if (age <= 4) p = 0;
+            if (age <= 4)
+                p = 0;
             else if (age == 5)
                 p = 0.5;
             else
                 p = 1;
             fishes_maturation(age) = p;
         }
-        harvest_sel_steep1(LL) = 0.05;
-        harvest_sel_mode(LL) = 4.93954;
-        harvest_sel_steep2(LL) = 911.712;
+        harvest_sel_steep1(LL) = 1.5;
+        harvest_sel_mode(LL) = 4.5;
+        harvest_sel_steep2(LL) = 50;
         
         harvest_sel_steep1(BT) = 2.35;
         harvest_sel_mode(BT) = 29.39;

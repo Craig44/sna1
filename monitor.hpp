@@ -114,7 +114,7 @@ class Monitor {
     }
 
     void catch_sample(Region region, Method method, const Fish& fish) {
-        if (components.A) age_sample(region, method, fish.age_bin())++;
+        if (components.A) age_sample(region, method, age_bin(fish.actual_age))++;
         if (components.L) length_sample(region, method, fish.length_bin())++;
     }
 

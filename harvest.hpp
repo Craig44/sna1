@@ -51,32 +51,33 @@ class Harvest {
 					selectivity_at_length(method,length_bin) = selectivity;
 				}
         	} else {
+        	    double selectivity = 0;
+                auto steep1 = parameters.harvest_sel_steep1(method);
+                auto mode = parameters.harvest_sel_mode(method);
+                auto steep2 = parameters.harvest_sel_steep2(method);
 				for (auto age : ages) {
+		            if (age <= 4) selectivity = 0;
+		            else if (age == 5)
+		                selectivity = 0.5;
+		            else
+		                selectivity = 1;
 
-                    double p = 0;
-                    if (age <= 4) p = 0;
-                    else if (age == 5)
-                        p = 0.5;
+
+
+				    // Case it to a double for use in std functions
+				    double d_age = (double)age.index();
+				    /*                    if(d_age < mode)
+                        selectivity = std::pow(2,-std::pow((d_age - mode) / steep1, 2));
                     else
-                        p = 1;
-                    selectivity_at_age(method,age) = p;
+                        selectivity = std::pow(2,-std::pow((d_age - mode) / steep2, 2));
 
-
-/*
-
-					auto steep1 = parameters.harvest_sel_steep1(method);
-					auto mode = parameters.harvest_sel_mode(method);
-					auto steep2 = parameters.harvest_sel_steep2(method);
-					double selectivity;
-					if(age<=mode)
-						selectivity = std::pow(2,-std::pow((age.index()-mode)/steep1,2));
-					else
-						selectivity = std::pow(2,-std::pow((age.index()-mode)/steep2,2));
-					selectivity_at_age(method,age.index()) = selectivity;
 */
 
+
+                    selectivity_at_age(method,age) = selectivity;
+
 					if (parameters.debug) {
-					    cerr << "Method = " << method << " age = " <<  age.index() << ": " << selectivity_at_age(method,age.index()) << endl;
+					    cerr << "Method = " << method << " checky d_age = " << d_age <<" age = " <<  age_bin(age.index()) << ": " << selectivity_at_age(method,age) << endl;
 					}
 
 				}
