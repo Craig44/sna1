@@ -104,8 +104,10 @@ class Model {
                         fish.movement();
                         fish.shedding();
 
-                        if (not burnin)
+                        if (not burnin) {
                             monitor.population(fish);
+                        }
+
                     }
                 }
             }
@@ -129,8 +131,9 @@ class Model {
 */
 
         // Don't go further if in burn in
-        if (burnin)
+        if (burnin) {
         	return;
+        }
 
 
         /*****************************************************************
@@ -194,6 +197,8 @@ class Model {
         double catch_taken = 0;
         double catch_observed = sum(harvest.catch_observed);
 
+        vector<double> test_sample_at_age(31);
+        vector<double> test_numbers_at_age(31);
 
         if (parameters.debug) {
             cerr << "Entering mortality process: yes" << endl;
@@ -260,6 +265,8 @@ class Model {
                 }
             }
         } else {
+
+
             // If there was observed catch then randomly draw fish and "assign" them with varying probabilities
             // to a particular region/method catch
             while(catch_observed > 0) {
@@ -276,17 +283,17 @@ class Model {
                     if (harvest.catch_taken(region, method) < harvest.catch_observed(region, method)) {
                         // Is this fish caught by this method?
                         auto selectivity = harvest.selectivity_at_age(method, fish.age_bin());
-                        auto selectivity1 = harvest.selectivity_at_age(method, age_bin(fish.actual_age));
-
                         if (parameters.debug)
-                            cerr << " method = " << method <<  "age_bin " << fish.age_bin() << " " <<  selectivity <<" fish actual age " <<  age_bin(fish.actual_age) << " selectivity = " << selectivity1 << endl;
+                            cerr << " method = " << method <<  "age_bin " << fish.age_bin() << " " <<  selectivity <<" fish actual age " << fish.age() <<  endl;
 
                         auto boldness = (method == fish.method_last) ? (1 - parameters.fishes_shyness(method)) : 1;
-                        if (chance() <= selectivity1 * boldness) {
+                        if (chance() <= selectivity * boldness) {
                             // An additional step of fish we keep only above mls
                             //if (fish.length >= parameters.harvest_mls(method)) {
                                 // Kill the fish
                                 fish.dies();
+                                if ((method == 0) & (y == 1980))
+                                    test_sample_at_age[fish.age_bin()] ++;
 
                                 // Add to catch taken for region/method
                                 double fish_biomass = fish.weight() * fishes.scalar;
@@ -326,20 +333,37 @@ class Model {
             }
         }
 
-        // Take the last half M
-/*
-        for (Fish& fish : fishes) {
-            if (fish.alive()) {
-                fish.half_survival();
+        if (y == 1980) {
+            cerr << "sample age ";
+            for (auto test : test_sample_at_age) {
+                cerr << test << " ";
             }
+            cerr << endl;
         }
-*/
+
 
         // Update harvest.biomass_vulnerable for use in monioring
         harvest.biomass_vulnerable_update(fishes);
 
         // Update monitoring
         monitor.update(fishes, harvest);
+
+/*        // Age fish at the end of time series
+        for (Fish& fish : fishes) {
+            if (fish.alive()) {
+                if ((fish.region == 0) & (y == 1980))
+                    test_numbers_at_age[fish.age_bin()] ++;
+                fish.birthday();
+            }
+        }*/
+
+        if (y == 1980) {
+            cerr << "numbers age ";
+            for (auto test : test_numbers_at_age) {
+                cerr << test << " ";
+            }
+            cerr << endl;
+        }
 
     }
 

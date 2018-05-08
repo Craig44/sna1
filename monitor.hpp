@@ -66,6 +66,11 @@ class Monitor {
     Array<double, Years, Regions, Methods, Ages> age_samples;
 
     /**
+     * Underlying population age structure.
+     */
+    // Array<double, Years, Regions, Methods, Ages> numbers_at_age;
+
+    /**
      * Sample of measured fish by region, method and length bin
      */
     Array<double, Regions, Methods, Lengths> length_sample;
@@ -114,8 +119,10 @@ class Monitor {
     }
 
     void catch_sample(Region region, Method method, const Fish& fish) {
-        if (components.A) age_sample(region, method, age_bin(fish.actual_age))++;
-        if (components.L) length_sample(region, method, fish.length_bin())++;
+        if (components.A)
+            age_sample(region, method, fish.age_bin())++;
+        if (components.L)
+            length_sample(region, method, fish.length_bin())++;
     }
 
     /**
@@ -165,7 +172,10 @@ class Monitor {
         if (components.A) {
             for (auto region : regions) {
                 for (auto method : methods) {
-                    for (auto age : ages) age_samples(y, region, method, age) = age_sample(region, method, age);
+                    for (auto age : ages) {
+
+                        age_samples(y, region, method, age) = age_sample(region, method, age);
+                    }
                 }
             }
         }
@@ -174,7 +184,8 @@ class Monitor {
         if (components.L) {
             for (auto region : regions) {
                 for (auto method : methods) {
-                    for (auto length : lengths) length_samples(y, region, method, length) = length_sample(region, method, length);
+                    for (auto length : lengths)
+                        length_samples(y, region, method, length) = length_sample(region, method, length);
                 }
             }
         }

@@ -249,10 +249,10 @@ class Parameters : public Structure<Parameters> {
                 p = 1;
             fishes_maturation(age) = p;
         }
-        harvest_sel_steep1(LL) = 1.5;
-        harvest_sel_mode(LL) = 4.5;
-        harvest_sel_steep2(LL) = 50;
-        
+        harvest_sel_steep1(LL) = 4.51008;
+        harvest_sel_mode(LL) = 4.345;
+        harvest_sel_steep2(LL) = 20;
+
         harvest_sel_steep1(BT) = 2.35;
         harvest_sel_mode(BT) = 29.39;
         harvest_sel_steep2(BT) = 29.15;

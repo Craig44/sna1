@@ -10,12 +10,12 @@ int main(int argc, char** argv) {
             task = argv[1];
         }
         if (task == "run") {
-            std::cout << "year\tfish(millions)\tstatus(%B0)\texprate\n";
+            std::cout << "year\tfish alive(millions)\t size of population (total)\tstatus(%B0)\texprate\n";
             std::cout << std::setprecision(2);
             std::function<void()> callback([&](){
                 std::cout
                     << now << "\t"
-                    << model.fishes.number(false)/1e6 << "\t" 
+                    << model.fishes.number(false)/1e6 << "\t" << model.fishes.size()/1e6  << "\t"
                     << sum(model.fishes.biomass_spawners)/sum(parameters.fishes_b0) << "\t" 
                     << sum(model.harvest.catch_taken)/sum(model.harvest.biomass_vulnerable) << std::endl; 
             });

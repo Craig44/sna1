@@ -80,6 +80,11 @@ HPPS := $(shell find . -maxdepth 1 -name "*.hpp")
 CPPS := $(shell find . -maxdepth 1 -name "*.cpp")
 TEST_CPPS = $(wildcard tests/*.cpp)
 
+#$(warning is $(HPPS))
+#$(warning is $(CPPS))
+#$(warning is $(requires))
+#$(warning is requires)
+
 # Executable for normal use
 sna1.exe: $(HPPS) $(CPPS) requires
 	$(CXX) $(CXX_FLAGS) -O3 $(INC_DIRS) -o$@ sna1.cpp $(LIB_DIRS) $(LIBS)

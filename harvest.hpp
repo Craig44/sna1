@@ -51,27 +51,36 @@ class Harvest {
 					selectivity_at_length(method,length_bin) = selectivity;
 				}
         	} else {
+        	    bool double_normal = false;
         	    double selectivity = 0;
                 auto steep1 = parameters.harvest_sel_steep1(method);
                 auto mode = parameters.harvest_sel_mode(method);
                 auto steep2 = parameters.harvest_sel_steep2(method);
 				for (auto age : ages) {
-		            if (age <= 4) selectivity = 0;
+/*		            if (age <= 4) selectivity = 0;
 		            else if (age == 5)
 		                selectivity = 0.5;
 		            else
-		                selectivity = 1;
-
+		                selectivity = 1;*/
 
 
 				    // Case it to a double for use in std functions
 				    double d_age = (double)age.index();
-				    /*                    if(d_age < mode)
-                        selectivity = std::pow(2,-std::pow((d_age - mode) / steep1, 2));
-                    else
-                        selectivity = std::pow(2,-std::pow((d_age - mode) / steep2, 2));
+                    if (d_age == 0) {
+                        selectivity = 0.0;
+                    } else {
+                        // if double normal
+                        if (double_normal) {
 
-*/
+                            if(d_age < mode)
+                                selectivity = std::pow(2,-std::pow((d_age - mode) / steep1, 2));
+                            else
+                                selectivity = std::pow(2,-std::pow((d_age - mode) / steep2, 2));
+                        } else {
+                            selectivity =  1.0 / (1.0 + pow(19.0, (mode - d_age) / steep1));
+                        }
+                    }
+
 
 
                     selectivity_at_age(method,age) = selectivity;

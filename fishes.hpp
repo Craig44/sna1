@@ -45,10 +45,16 @@ class Fish {
      */
     float length;
 
-    /*
-     * Age
+    /**
+     * Current age of this fish
      */
-    int actual_age;
+    //float age;
+
+    float age(void) const {
+        return year(now) - year(birth);
+    }
+
+
     /**
      * Is this fish mature?
      */
@@ -82,18 +88,13 @@ class Fish {
         return death == 0;
     }
 
-    /**
-     * Get the age of this fish
-     */
-    float age(void) const {
-        return year(now)-year(birth);
-    }
+
 
     /**
      * Get the age bin of this fish
      */
     int age_bin(void) const {
-        return ::age_bin(actual_age);
+        return ::age_bin(age());
     }
 
     /**
@@ -103,6 +104,12 @@ class Fish {
         return ::length_bin(length);
     }
 
+    /**
+     * Birthday
+     */
+    //void birthday(void) {
+    //    age++;
+    //}
     /**
      * Get the weight of this fish
      *
@@ -132,20 +139,22 @@ class Fish {
         home = Region(int(parameters.fishes_seed_region_dist.random()));
         region = home;
 
-        auto age = std::max(1.,std::min(parameters.fishes_seed_age_dist.random(),100.));
-        birth = now-age;
+        auto seed_age = std::max(1.,std::min(parameters.fishes_seed_age_dist.random(),100.));
+        birth = now-seed_age;
         death = 0;
 
         sex = (chance()<parameters.fishes_males)?male:female;
 
-        growth_init(age);
+        growth_init(seed_age);
 
         // This an approximation
-        mature = chance()<parameters.fishes_maturation(age);
+        mature = chance()<parameters.fishes_maturation(seed_age);
 
         tag = 0;
 
         method_last = -1;
+
+        //age = seed_age;
     }
 
     /**
@@ -170,6 +179,8 @@ class Fish {
         tag = 0;
 
         method_last = -1;
+
+        //age = 0;
     }
 
     /**
@@ -179,7 +190,6 @@ class Fish {
      * we are parameterize if using `k` and `linf`
      */
     void growth_init(int age) {
-        actual_age = 0;
         // Get von Bert growth parameters from their distributions
         double k;
         double linf;
@@ -235,10 +245,7 @@ class Fish {
      * Increase the length of this fish
      */
     void growth(void) {
-        // Age needs to increment, otherwise this will cause a discrepency for age based models
-        // We are adding an anniual increment of growth which is pretty much the ageing process.
-        // But if we have age based processes such selectivity then, growth will differ from age.
-        actual_age++;
+        //age++;
         // Calculate growth increment
         double incr;
         if (parameters.fishes_growth_model == 'l') {
@@ -515,7 +522,8 @@ class Fishes : public std::vector<Fish> {
     double age_mean(void) {
         Mean mean;
         for (auto fish : *this) {
-            if (fish.alive()) mean.append(fish.age());
+            if (fish.alive())
+                mean.append(fish.age_bin());
         }
         return mean;
     }
@@ -526,7 +534,8 @@ class Fishes : public std::vector<Fish> {
     double length_mean(void) {
         Mean mean;
         for (auto fish : *this) {
-            if (fish.alive()) mean.append(fish.length);
+            if (fish.alive())
+               mean.append(fish.length);
         }
         return mean;
     }
