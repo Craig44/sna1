@@ -1,4 +1,4 @@
-#pragma once
+#pragma once // This is a call to the compiler to say that if included in a source file, only to parse it once <http://en.cppreference.com/w/cpp/preprocessor/impl>
 
 #include "random.hpp"
 
@@ -67,9 +67,9 @@ class Model {
         fishes.recruitment_update();
 
         // Create and insert each recruit into the population
-        uint slot = 0;
+        unsigned int slot = 0;
         for (auto region : regions) {
-            for (uint index = 0; index < fishes.recruitment_instances(region); index++){
+            for (unsigned int index = 0; index < fishes.recruitment_instances(region); index++){
                 Fish recruit;
                 recruit.born(Region(region.index()));
 
@@ -333,13 +333,7 @@ class Model {
             }
         }
 
-        if (y == 1980) {
-            cerr << "sample age ";
-            for (auto test : test_sample_at_age) {
-                cerr << test << " ";
-            }
-            cerr << endl;
-        }
+
 
 
         // Update harvest.biomass_vulnerable for use in monioring
@@ -357,13 +351,6 @@ class Model {
             }
         }*/
 
-        if (y == 1980) {
-            cerr << "numbers age ";
-            for (auto test : test_numbers_at_age) {
-                cerr << test << " ";
-            }
-            cerr << endl;
-        }
 
     }
 
@@ -373,14 +360,14 @@ class Model {
      * This method simply calls `update()` and then sets population level attributes
      * like `biomass_spawners_pristine` and `scalar`
      */
-    void pristine(Time time, function<void()>* callback = 0){
+    void pristine(Time time, function<void()>* callback = 0, bool called_after_seed = false){
 
         if (parameters.debug) {
             cerr << "entering pristine: " << "yes" << endl;
         }
 
         // Set `now` to some arbitrary time (but high enough that fish
-        // will have a birth time (uint) greater than 0)
+        // will have a birth time (unsigned int) greater than 0)
         now = 1;
         // Keep recruitment fixed at a constant level that will produce the
         // wanted `seed_number` of individuals in equilibrium
@@ -413,7 +400,12 @@ class Model {
         steps_to_check.size();
         double initial_biomass = 0;
         int steps = 0;
-        while (steps < 150) {
+
+        int step_limit = 150;
+        if (called_after_seed)
+        	step_limit = 50;
+
+        while (steps < step_limit) {
         	fishes.biomass_update();
         	initial_biomass = fishes.biomass;
         	if (parameters.debug) {
@@ -477,10 +469,12 @@ class Model {
         }
 
         if (initial == 0) {
-        	pristine(start, callback);
+        	pristine(start, callback, false);
         } else {
             // Currently as this code stands this will never get executed perhaps ask someone the purpose of this
         	fishes.seed(1e6);
+        	pristine(start, callback, true);
+
         }
         // Iterate over years
         now = start;

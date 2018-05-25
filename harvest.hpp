@@ -31,7 +31,7 @@ class Harvest {
     Array<double, Regions, Methods, Years> catch_taken_by_year;
 
 
-    uint attempts;
+    unsigned int attempts;
 
 
 

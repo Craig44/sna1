@@ -26,3 +26,5 @@ using namespace std;
 using Stencila::StandardDeviation;
 #include <stencila/structure.hpp>
 using Stencila::Structure;
+
+#define IFE(FILE, WHAT) if(boost::filesystem::exists(FILE)) WHAT(FILE)

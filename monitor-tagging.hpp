@@ -37,7 +37,7 @@ public:
     /**
      * The number of fish scanned by year, region, method and length
      */
-    Array<int, Years, Regions, Methods, Lengths> scanned;
+    //Array<int, Years, Regions, Methods, Lengths> scanned;
 
     /**
      * The current tag number
@@ -88,7 +88,7 @@ public:
     void initialise(void) {
         population_numbers = 0;
         released = 0;
-        scanned = 0;
+        //scanned = 0;
     }
 
     void finalise(void) {
@@ -125,7 +125,7 @@ public:
     }
 
     void scan(const Fish& fish, Method method) {
-        scanned(year(now), fish.region, method, fish.length_bin())++;
+        //scanned(year(now), fish.region, method, fish.length_bin())++;
         if (fish.tag and chance() < parameters.tagging_detection) recover(fish, method);
     }
 
@@ -148,7 +148,7 @@ public:
         
         population_numbers.write(directory + "/population_numbers.tsv");
         released.write(directory + "/released.tsv");
-        scanned.write(directory + "/scanned.tsv");
+        //scanned.write(directory + "/scanned.tsv");
 
         std::ofstream releases_file(directory + "/releases.tsv");
         releases_file << "tag\ttime_rel\tregion_rel\tmethod_rel\tlength_rel\n";

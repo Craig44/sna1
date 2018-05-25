@@ -27,12 +27,12 @@ class Monitor {
     /**
      * number of Recruits by year, region and method
      */
-    Array<uint, Years, Regions> recruits;
+    Array<unsigned int, Years, Regions> recruits;
 
     /**
      * SSB in initial state-this is for debugging (delete)
      */
-    Array<uint, Ages, Regions> initial_numbers_at_age;
+    Array<unsigned int, Ages, Regions> initial_numbers_at_age;
 
     /**
      * Catches by year, region and method
@@ -68,7 +68,7 @@ class Monitor {
     /**
      * Underlying population age structure.
      */
-    // Array<double, Years, Regions, Methods, Ages> numbers_at_age;
+     Array<double, Years, Regions, Ages> numbers_at_age;
 
     /**
      * Sample of measured fish by region, method and length bin
@@ -140,7 +140,13 @@ class Monitor {
      * Update things at the end of each time start
      */
     void update(const Fishes& fishes, const Harvest& harvest) {
-        auto y = year(now);
+    	auto y = year(now);
+        for (Fish fish : fishes) {
+        	if (fish.alive())
+        		numbers_at_age(y,fish.region,fish.age_bin())++;
+        }
+
+
         // Record spawning biomass
         for (auto region : regions) {
             biomass_spawners(y, region) = fishes.biomass_spawners(region);
@@ -226,6 +232,12 @@ class Monitor {
 
         std::ofstream initial_numbers_at_age_file(casal_directory + "/initial_numbers_at_age.tsv");
         initial_numbers_at_age_file << "age\tregion\tnumber_of_agents\n";
+
+        std::ofstream numbers_at_age_file(casal_directory + "/numbers_at_age.tsv");
+        numbers_at_age_file << "year\tregion\t";
+        for (auto this_age : ages)
+        	numbers_at_age_file << "age" << this_age << "\t";
+        numbers_at_age_file << "\n";
         
         std::ofstream cpue_file(casal_directory + "/cpue.tsv");
         cpue_file<<"year\tregion\tmethod\tcpue\n";
@@ -271,6 +283,12 @@ class Monitor {
                     << year << "\t"
                     << region_code(region) << "\t"
                     << recruits(year, region) << "\n";
+
+                numbers_at_age_file << year << "\t" << region_code(region) << "\t";
+                    for(auto age : ages)
+                    	numbers_at_age_file << numbers_at_age(year, region, age) << "\t";
+                    numbers_at_age_file << "\n";
+
 
                 for (auto method : methods) {
                     catch_file

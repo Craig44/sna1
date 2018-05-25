@@ -2,15 +2,16 @@ all: sna1.exe
 
 clean:
 	rm -f *.debug *.exe *.o
-
+## For printing	
+print-%  : ; @echo $* = $($*)
 #############################################################
 # Operating system
 
-UNAME := $(shell uname -o)
-ifeq ($(UNAME), GNU/Linux)
+UNAME := $(shell uname )
+ifeq ($(UNAME), Linux)
 	OS := linux
 endif
-ifeq ($(UNAME), Msys)
+ifeq ($(UNAME), WindowsNT)
 	OS := win
 endif
 
@@ -29,20 +30,35 @@ requires/boost: requires/boost_$(BOOST_VERSION).tar.bz2
 	touch $@
 
 BOOST_BOOTSTRAP_FLAGS := --with-libraries=filesystem,test
-BOOST_B2_FLAGS := -d0 --prefix=. link=static install
+BOOST_B2_FLAGS := -d0 --prefix=. link=static install 
 ifeq ($(OS), linux)
 	BOOST_B2_FLAGS += cxxflags=-fPIC
 endif
 ifeq ($(OS), win)
-	BOOST_BOOTSTRAP_FLAGS += --with-toolset=mingw
 	BOOST_B2_FLAGS += --layout=system release toolset=gcc
 endif
 
+ifeq ($(OS), linux)
 requires/boost/lib: requires/boost
-	cd $< ; ./bootstrap.sh $(BOOST_BOOTSTRAP_FLAGS)
+	cd $< ;./bootstrap.sh $(BOOST_BOOTSTRAP_FLAGS)
 	sed -i "s/mingw/gcc/g" $</project-config.jam
 	cd $< ; ./b2 $(BOOST_B2_FLAGS)
 	touch $@
+endif
+ifeq ($(OS), win)
+requires/boost/lib: requires/boost
+	##cmd /C bootstrap.bat gcc --with-libraries=filesystem,test
+	cd $< ; cmd /C bootstrap.bat gcc $(BOOST_BOOTSTRAP_FLAGS)
+	## The file 'project-config.jam' may need a more comprehensive change, but for now this is all I did
+	sed -i "s/msvc/gcc/g" $</project-config.jam
+	##@echo Running b2.exe	
+	cd $< ; ./b2 $(BOOST_B2_FLAGS)
+	./b2 -d0 --prefix=. link=static install cxxflags=-fPIC runtime-link=static stage
+
+	touch $@
+endif
+
+
 
 
 STENCILA_VERSION := 0.2
@@ -68,25 +84,25 @@ requires: requires/boost/lib requires/stencila requires/r-packages.installed
 
 #############################################################
 # Executables
- 
+$(info entering executable)
 # Define compile options and required libraries
 CXX_FLAGS := -std=c++11 -Wall -Wno-unused-function -Wno-unused-local-typedefs -Wno-unused-variable -pthread
 INC_DIRS := -I. -Irequires/boost -Irequires/stencila
 LIB_DIRS := -Lrequires/boost/lib
-LIBS := -lboost_system -lboost_filesystem 
+LIBS := -lboost_system-mgw51-mt-1_62 -lboost_filesystem-mgw51-mt-1_62
+
 
 # Find all .hpp and .cpp files (to save time don't recurse into subdirectories)
-HPPS := $(shell find . -maxdepth 1 -name "*.hpp")
-CPPS := $(shell find . -maxdepth 1 -name "*.cpp")
+HPPS := $(shell find_linux . -maxdepth 1 -name "*.hpp")
+CPPS := $(shell find_linux . -maxdepth 1 -name "*.cpp")
 TEST_CPPS = $(wildcard tests/*.cpp)
 
-#$(warning is $(HPPS))
-#$(warning is $(CPPS))
-#$(warning is $(requires))
-#$(warning is requires)
+$(warning cpps are $(CPPS))
+$(warning hpps $(HPPS))
+$(warning requires = requires)
 
 # Executable for normal use
-sna1.exe: $(HPPS) $(CPPS) requires
+sna1.exe: $(HPPS)
 	$(CXX) $(CXX_FLAGS) -O3 $(INC_DIRS) -o$@ sna1.cpp $(LIB_DIRS) $(LIBS)
 
 # Executable for debugging
@@ -94,7 +110,7 @@ sna1.debug: $(HPPS) $(CPPS) requires
 	$(CXX) $(CXX_FLAGS) -g -O0 $(INC_DIRS) -o$@ sna1.cpp $(LIB_DIRS) $(LIBS)
 
 # Executable for profiling
-sna1.prof: $(HPPS) $(CPPS) requires
+sna1.prof: $(HPPS) $(CPPS)
 	$(CXX) $(CXX_FLAGS) -pg -O3 $(INC_DIRS) -o$@ sna1.cpp $(LIB_DIRS) $(LIBS)
 
 # Test executable with coverage (and no optimisation) for tests that run fast

@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
                     << sum(model.fishes.biomass_spawners)/sum(parameters.fishes_b0) << "\t" 
                     << sum(model.harvest.catch_taken)/sum(model.harvest.biomass_vulnerable) << std::endl; 
             });
-            model.run(1900, 2018, &callback);
+            model.run(1899, 2018, &callback);
         } else {
             std::cout << "No task (e.g. run) specified" <<std::endl;
         }
