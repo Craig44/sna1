@@ -48,7 +48,7 @@ class Parameters : public Structure<Parameters> {
 
     // A debug variable to help me understand this program
     bool debug = false;
-
+    unsigned number_lat_bins = 7;
     /**
      * Input variable which defines whether selectivity is age based or length based
      */
@@ -269,7 +269,7 @@ class Parameters : public Structure<Parameters> {
 
         // Parameter values can be overidden by setting them in the following files:
         
-
+        #define IFE(FILE, WHAT) if(boost::filesystem::exists(FILE)) WHAT(FILE)
         IFE("input/parameters.json", read);
         IFE("input/fishes_b0.tsv", fishes_b0.read);
         IFE("input/fishes_rec_strengths.tsv", fishes_rec_strengths.read);
@@ -280,7 +280,6 @@ class Parameters : public Structure<Parameters> {
         IFE("input/monitoring_programme.tsv", monitoring_programme.read);
         IFE("input/tagging_releases.tsv", tagging_releases.read);
         IFE("input/tagging_scanning.tsv", tagging_scanning.read);
-
         #undef IFE
 
         // Derived values
@@ -327,7 +326,7 @@ class Parameters : public Structure<Parameters> {
             .data(fishes_seed_number, "fishes_seed_number")
             .data(debug, "debug")
             .data(length_based_selectivity, "length_based_selectivity")
-            .data(number_of_lats, "number_of_lats")
+            .data(number_lat_bins, "number_lat_bins")
 
             .data(fishes_seed_z, "fishes_seed_z")
             
