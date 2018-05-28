@@ -30,9 +30,6 @@ using Stencila::StandardDeviation;
 using Stencila::Structure;
 
 
-
-
-
 /*
 *
  * This method converts a string into a lowercase version of it
@@ -164,7 +161,6 @@ Target ToInline(const Source arg) {
   Target result = Target();
   try {
     result = boost::lexical_cast<Target>(arg);
-
   } catch (...) {
     cerr << "Failed to do an inline conversion from " << arg;
   }

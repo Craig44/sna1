@@ -1,36 +1,79 @@
 #pragma once
 
 #include "requirements.hpp"
+//#include "dimensions.hpp"
+//#include "parameters.hpp"
+
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim_all.hpp>
 #include <boost/algorithm/string/split.hpp>
-
 
 /**
  * The "environment"
  *
  * Currently just a placeholder
  */
+// TODO think about how best to deal with bounds..
 
 class Environ {
   public:
+
     // Public objects.
-    map<unsigned, vector<vector<double>>> preference_by_year_;
-    vector<double> lats;
+    map<unsigned, vector<vector<float>>> preference_by_year_;
+    vector<double> lats; // These are expected to be upper and lower bins for each cell e.g. 10 20 30 = 2 cells with midpoints |10.5|20.5|
     vector<double> lons;
+    vector<unsigned> years_;
+
+    /*
+     *  An accessor that returns the preference for a cell that an individual is in, in a year
+     */
+    float get_preference(double lat ,double lon, unsigned year) {
+      return preference_by_year_[year][get_lat_index(lat)][get_long_index(lon)];
+    }
+
+    /*
+     *  Return the longitude bin index that this longitude is in.
+     */
+    unsigned get_long_index(double lon) {
+      unsigned index = 0;
+      // skip the first bin as that is a lower bound and nothing should be less than that.
+      for (unsigned this_lon = 1; this_lon <  lons.size(); ++this_lon,++index) {
+        if (lon < lons[this_lon]) {
+          return index;
+        }
+      }
+      return lons.size() - 1;
+    }
+
+    /*
+     *  Return the latitude bin index that this longitude is in.
+     */
+    unsigned get_lat_index(double lat) {
+      unsigned index = 0;
+      // skip the first bin as that is a lower bound and nothing should be less than that.
+      for (unsigned this_lat = 1; this_lat <  lats.size(); ++this_lat,++index) {
+        if (lat > lats[this_lat]) {
+          return index;
+        }
+      }
+      return lats.size() - 1;
+    }
 
 
-
-
-    // For now I am just going to read in data and store it the initialise class.
+  /*
+   * This method will read in data and do preliminary calcualtions and checks.
+   */
     void initialise(void) {
-      cerr << "entering initialsie" << endl;
+      read_in_data();
+    }
 
+    void read_in_data(void) {
       // Define some variables that will be used throughout the code. temporary variables to be destroyed at the end of function call
       bool lat_file_found = false;
       bool long_file_found = false;
       string current_line;
       vector<string> current_line_parts;
+      //map<unsigned, vector<vector<double>>> preference_by_year;
 
       boost::filesystem::path current_dir("input/environ"); //
       boost::filesystem::recursive_directory_iterator end;
@@ -41,6 +84,7 @@ class Environ {
 
         // make exceptions for certain files, this could be a way allowing for multiple components such as having 0 areas such as islands that individuals cannot head to.
         if (name == "lats.txt") {
+          cerr << "found lats.txt" << endl;
           lat_file_found = true;
           boost::filesystem::ifstream file{iter->path()};
           while(getline(file, current_line)){
@@ -55,6 +99,7 @@ class Environ {
               if (!To<double>(col, element)) {
                 cerr << "failed to convert " << col << " to double, either the code is shit or you have character in the lats.txt file" << endl;
               }
+              cerr << "loading values " << element << endl;
               lats.push_back(element);
             }
           }
@@ -102,7 +147,7 @@ class Environ {
         // I will allow the following seperators ',' '\t' ' ' '  ' but no others.
         boost::filesystem::ifstream file{iter->path()};
 
-        cerr << "read in file, resize preference " << parameters.number_lat_bins << endl;
+        //cerr << "read in file, resize preference " << parameters.number_lat_bins << endl;
         // Allocate memory for rows, then push_back cols preferences[year][lat_ndx][long_ndx]
         //preference_by_year_[temp_year].resize(7);
 
@@ -113,7 +158,7 @@ class Environ {
 
         unsigned lat_iter = 0;
         while(getline(file, current_line)){
-          vector<double> row_vector;
+          vector<float> row_vector;
           cerr << "entering line number = " << lat_iter + 1 << " where line = " << current_line << endl;
           // Replace seperators
           boost::replace_all(current_line, "\t", " ");
@@ -125,34 +170,32 @@ class Environ {
 
           // iterate over and store
           unsigned long_iter = 0;
-          double element;
+          float element;
           for (auto col : current_line_parts) {
-            if (!To<double>(col, element)) {
+            if (!To<float>(col, element)) {
               cerr << "failed to convert " << col << " to double, either the code is shit or you have character at row '"<< lat_iter + 1 << "' and column '" << long_iter + 1 << "'" << endl;
             }
-            cerr << "value = " << element << " ";
             row_vector.push_back(element);
 
             ++long_iter;
           }
           preference_by_year_[temp_year].push_back(row_vector);
-
-          cerr << endl;
           ++lat_iter;
         }
-
       }
 
-      if (long_file_found) {
+      if (!long_file_found) {
         cerr << "could not find longs.txt, this is an expected file please check." << endl;
       }
-      if (lat_file_found) {
+      if (!lat_file_found) {
         cerr << "could not find lats.txt, this is an expected file please check." << endl;
       }
 
-      // Check that there is .txt file for each year of the model e.g. 1990.txt 1991.txt
+      //TODO
+      // Check lats and longs are consistent, we don't want an issue where we are accessing out of memory elements in any given year
+      // CHeck there is a preference for each year.
+      // send an expression to the C++ error handler catch()
     }
-
 
 
     void finalise(void) {
@@ -160,6 +203,5 @@ class Environ {
     }
 
   private:
-    vector<unsigned> years_;
 
 };  // class Environ*/

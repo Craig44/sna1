@@ -18,14 +18,14 @@ using namespace std;
 class Model {
  public:
 
-    Environ environ;
+    Environ this_environ; // DO NOT call this environ, that is a macro in stdlib.h on windows which caused me many hours of suffering trying to find.
     Fishes fishes;
     Harvest harvest;
     Monitor monitor;
 
     void initialise(void) {
         parameters.initialise();
-        environ.initialise();
+        this_environ.initialise();
         fishes.initialise();
         harvest.initialise();
         monitor.initialise();
@@ -33,7 +33,7 @@ class Model {
 
     void finalise(void) {
         parameters.finalise();
-        environ.finalise();
+        this_environ.finalise();
         fishes.finalise();
         harvest.finalise();
         monitor.finalise();
@@ -71,7 +71,7 @@ class Model {
         for (auto region : regions) {
             for (unsigned int index = 0; index < fishes.recruitment_instances(region); index++){
                 Fish recruit;
-                recruit.born(Region(region.index()));
+                recruit.born(Region(region.index()), this_environ);
 
                 // Find a "slot" in population to insert this recruit
                 // An empty 'slot' is created when previous fish in the partition die.
@@ -89,7 +89,7 @@ class Model {
                 }
             }
         }
-
+        cout << "finsihed recruitment " << endl;
         /*****************************************************************
          * Fish population dynamics
          ****************************************************************/
@@ -101,7 +101,9 @@ class Model {
                     if (fish.survival()) {
                         fish.growth();
                         fish.maturation();
-                        fish.movement();
+                        //fish.movement();
+                        fish.preference_movement();
+
                         fish.shedding();
 
                         if (not burnin) {
@@ -265,8 +267,6 @@ class Model {
                 }
             }
         } else {
-
-
             // If there was observed catch then randomly draw fish and "assign" them with varying probabilities
             // to a particular region/method catch
             while(catch_observed > 0) {
@@ -342,16 +342,6 @@ class Model {
         // Update monitoring
         monitor.update(fishes, harvest);
 
-/*        // Age fish at the end of time series
-        for (Fish& fish : fishes) {
-            if (fish.alive()) {
-                if ((fish.region == 0) & (y == 1980))
-                    test_numbers_at_age[fish.age_bin()] ++;
-                fish.birthday();
-            }
-        }*/
-
-
     }
 
     /**
@@ -365,6 +355,7 @@ class Model {
         if (parameters.debug) {
             cerr << "entering pristine: " << "yes" << endl;
         }
+
 
         // Set `now` to some arbitrary time (but high enough that fish
         // will have a birth time (unsigned int) greater than 0)
@@ -390,7 +381,7 @@ class Model {
         }
         // start by seeding fishes scalar = 1, find out where this gets updated through out the code
         fishes.scalar = 1;
-        fishes.seed(parameters.fishes_seed_number);
+        fishes.seed(parameters.fishes_seed_number, this_environ);
         // Burn in
         // TODO Currently just burns in for an arbitarty number of iterations
         // Should instead exit when stability in population characteristics
@@ -472,7 +463,7 @@ class Model {
         	pristine(start, callback, false);
         } else {
             // Currently as this code stands this will never get executed perhaps ask someone the purpose of this
-        	fishes.seed(1e6);
+        	fishes.seed(1e6,this_environ);
         	pristine(start, callback, true);
 
         }

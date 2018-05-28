@@ -48,13 +48,22 @@ class Parameters : public Structure<Parameters> {
 
     // A debug variable to help me understand this program
     bool debug = false;
-    unsigned number_lat_bins = 7;
+
     /**
      * Input variable which defines whether selectivity is age based or length based
      */
     bool length_based_selectivity = false;
 
+    /**
+     * Input variable which defines whether selectivity is age based or length based
+     */
+    double diffusion_parameter;
+
+    double standard_dev_for_preference;
+
+
     Uniform fishes_seed_region_dist;
+
 
     /**
      * Total mortality of the initial seed population
@@ -302,6 +311,9 @@ class Parameters : public Structure<Parameters> {
             cerr << "L_inf: " << fishes_linf_mean << endl;
 
         }
+
+        // TODO if
+        standard_dev_for_preference = sqrt(2*diffusion_parameter*1);
     }
 
     void finalise(void) {
@@ -326,7 +338,7 @@ class Parameters : public Structure<Parameters> {
             .data(fishes_seed_number, "fishes_seed_number")
             .data(debug, "debug")
             .data(length_based_selectivity, "length_based_selectivity")
-            .data(number_lat_bins, "number_lat_bins")
+            .data(diffusion_parameter, "diffusion_parameter")
 
             .data(fishes_seed_z, "fishes_seed_z")
             

@@ -4,7 +4,9 @@
 #include "dimensions.hpp"
 #include "parameters.hpp"
 #include "environ.hpp"
+#include "random.hpp"
 
+class Environ; // fwd declare
 /**
  * A fish
  */
@@ -15,6 +17,14 @@ class Fish {
      */
     Region home;
 
+    /**
+     * Normal random number generator for random walk preference movement
+     */
+    Normal normal_generator;
+    /**
+     * A pointer to the environment
+     */
+    Environ* the_environ; // Every fish has a pointer to the enviroment so that they can movec based on where they are for preference movement.
     /**
      * Time of birth of this fish
      */
@@ -30,6 +40,15 @@ class Fish {
      */
     Sex sex;
 
+    /**
+     * latitude of this fish
+     */
+    double lat;
+
+    /**
+     * lonigtude of this fish
+     */
+    double lon;
     /**
      * Intercept of the length increment to length relaion
      */
@@ -135,9 +154,14 @@ class Fish {
      *  - seed fish are distributed evenly across areas
      *  - maturity is approximated by maturation schedule
      */
-    void seed(void) {
+    void seed(Environ &environ_class_to_assign) {
+        the_environ = &environ_class_to_assign;
+
         home = Region(int(parameters.fishes_seed_region_dist.random()));
         region = home;
+
+        lat = -55.0;
+        lon = 175.0;
 
         auto seed_age = std::max(1.,std::min(parameters.fishes_seed_age_dist.random(),100.));
         birth = now-seed_age;
@@ -163,7 +187,15 @@ class Fish {
      * Initialises attributes as though this fish is close
      * to age 0
      */
-    void born(Region region_) {
+    void born(Region region_, Environ &environ_class_to_assign) {
+
+        // create a link to the environemnt pointer
+        the_environ = &environ_class_to_assign;
+
+        // TODO add something here
+        lat = -55.0;
+        lon = 175.0;
+
         home = region_;
         region = home;
 
@@ -288,12 +320,29 @@ class Fish {
         }
     }
 
+
+
+    /**
+     * Move this fish
+     */
+    void preference_movement(void) {
+      if (now == 1900) {
+        cout << "about to use preference movement to move fish lat = " << lat << " lon " << lon << " year " << year(now) << " or year = "<< now << endl;
+        // pull gradients zonal and meridinal
+        double preference = the_environ->get_preference(lat, lon,year(now));
+        normal_generator = {preference, parameters.standard_dev_for_preference};
+        cout << "calculating preference movement, lat = " << lat << " long = " << lon << " preference = " << preference << endl;
+        double jump = normal_generator.random();
+        cout << "jump = " << jump << endl;
+      }
+    }
     /**
      * Move this fish
      */
     void movement(void) {
         // If no movement, don't do anything
-        if (parameters.fishes_movement_type == 'n') return;
+        if (parameters.fishes_movement_type == 'n')
+          return;
         // Instantaneous movement between regions is eith Markovian (based on where fish is)
         // or home fidelity (based on fish's home)
         Region basis = region;
@@ -340,6 +389,8 @@ class Fish {
  * the vector of `Fish` objects is intended to be a representative sample of the overall population.
  * The variable, `scalar` is then used to scale other variables, like biomass, to population levels.
  */
+
+
 class Fishes : public std::vector<Fish> {
  public:
 
@@ -354,6 +405,9 @@ class Fishes : public std::vector<Fish> {
      */
     double scalar = 1.0;
 
+    // we want access to this class for some functions.
+    Environ* this_environemnt;
+
     /**
      * Seed the population with individuals that have attribute values 
      * whose distributions approximate that of a pristine population
@@ -361,11 +415,11 @@ class Fishes : public std::vector<Fish> {
      * This method is usually used in `Model::pristine` to reduce burn-in times
      * but is a separate method so that it can also be used in unit tests. 
      */
-    void seed(unsigned int number) {
+    void seed(unsigned int number, Environ &this_environ) {
         clear();
         resize(number);
         for (auto& fish : *this) {
-            fish.seed();
+            fish.seed(this_environ);
         }
     }
 
@@ -402,6 +456,8 @@ class Fishes : public std::vector<Fish> {
         }
         biomass_spawners *= scalar;
     }
+
+
 
 
     char recruitment_mode = 'n';
@@ -460,6 +516,8 @@ class Fishes : public std::vector<Fish> {
      * Initialise parameters etc
      */
     void initialise(void){
+      // Create a pointer to the environment class so we can get preference values by space and time.
+
 
     }
 
@@ -482,7 +540,7 @@ class Fishes : public std::vector<Fish> {
         pars << "fish\tintercept\tslope\tk\tL_inf\n";
         std::ofstream trajs("output/fishes/growth_trajs.tsv");
         trajs << "fish\ttime\tlength\tlength_new\n";
-        for (int index = 0; index < 1000; index++) {
+/*        for (int index = 0; index < 100; index++) {
             Fish fish;
             fish.born(HG);
             pars << index << "\t"
@@ -498,7 +556,7 @@ class Fishes : public std::vector<Fish> {
                 fish.growth();
                 trajs << fish.length << "\n";
             }
-        }
+        }*/
     }
 
 
