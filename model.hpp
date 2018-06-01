@@ -62,10 +62,14 @@ class Model {
         
         // Update spawning biomass
         fishes.biomass_spawners_update();
-
+      #ifdef DEBUG
+      cerr << "complete spawning" << endl;
+      #endif
         // Update recruitment
         fishes.recruitment_update();
-
+        #ifdef DEBUG
+        cerr << "calculate recruits" << endl;
+        #endif
         // Create and insert each recruit into the population
         unsigned int slot = 0;
         for (auto region : regions) {
@@ -89,49 +93,30 @@ class Model {
                 }
             }
         }
-        cout << "finsihed recruitment " << endl;
+        #ifdef DEBUG
+        cerr << "finished recruitss" << endl;
+        #endif
         /*****************************************************************
          * Fish population dynamics
          ****************************************************************/
-//        if (burnin) {
-            // If in burn-in take all of M now, else only take half
-            for (Fish& fish : fishes) {
-                if (fish.alive()) {
-                    // This is only half M, I am going to repeat this
-                    if (fish.survival()) {
-                        fish.growth();
-                        fish.maturation();
-                        //fish.movement();
-                        fish.preference_movement();
+        for (Fish& fish : fishes) {
+            if (fish.alive()) {
+                // This is only half M, I am going to repeat this
+                if (fish.survival()) {
+                    fish.growth();
+                    fish.maturation();
+                    //fish.movement();
+                    fish.preference_movement();
 
-                        fish.shedding();
+                    fish.shedding();
 
-                        if (not burnin) {
-                            monitor.population(fish);
-                        }
-
+                    if (not burnin) {
+                        monitor.population(fish);
                     }
-                }
-            }
-/*
-        } else {
-            for (Fish& fish : fishes) {
-                if (fish.alive()) {
-                    // This is only half M, I am going to repeat this
-                    if (fish.half_survival()) {
-                        fish.growth();
-                        fish.maturation();
-                        fish.movement();
-                        fish.shedding();
 
-                        if (not burnin)
-                            monitor.population(fish);
-                    }
                 }
             }
         }
-*/
-
         // Don't go further if in burn in
         if (burnin) {
         	return;
@@ -454,10 +439,10 @@ class Model {
     	// the
 
         // I am going to pipe out my debug report to the log file
-        if (parameters.debug) {
-            std::cerr << "message: " << "value" << std::endl;
-            std::cerr << "initial: " << initial << std::endl;
-        }
+        #ifdef DEBUG
+        cerr << "message: " << "value" << endl;
+        cerr << "initial: " << initial << endl;
+        #endif
 
         if (initial == 0) {
         	pristine(start, callback, false);
@@ -467,6 +452,8 @@ class Model {
         	pristine(start, callback, true);
 
         }
+
+        // Have a look at
         // Iterate over years
         now = start;
         while (now <= finish) {

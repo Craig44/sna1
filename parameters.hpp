@@ -59,8 +59,21 @@ class Parameters : public Structure<Parameters> {
      */
     double diffusion_parameter;
 
+    // Derived parameter from the diffusion parameter
     double standard_dev_for_preference;
 
+    // preference parameters
+    double sst_optimum;
+    double sst_lower;
+    double sst_upper;
+    // depth
+    double depth_optimum;
+    double depth_lower;
+    double depth_upper;
+    // npp
+    double npp_optimum;
+    double npp_lower;
+    double npp_upper;
 
     Uniform fishes_seed_region_dist;
 
@@ -339,6 +352,16 @@ class Parameters : public Structure<Parameters> {
             .data(debug, "debug")
             .data(length_based_selectivity, "length_based_selectivity")
             .data(diffusion_parameter, "diffusion_parameter")
+
+            .data(sst_optimum, "sst_optimum")
+            .data(sst_lower, "sst_lower")
+            .data(sst_upper, "sst_upper")
+            .data(depth_optimum, "depth_optimum")
+            .data(depth_lower, "depth_lower")
+            .data(depth_upper, "depth_upper")
+            .data(npp_optimum, "npp optimum")
+            .data(npp_lower, "npp_lower")
+            .data(npp_upper, "npp_upper")
 
             .data(fishes_seed_z, "fishes_seed_z")
             

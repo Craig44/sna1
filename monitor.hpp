@@ -339,7 +339,7 @@ class Monitor {
             growth_20 = growth_intercept + 20 * growth_slope;
             growth_50 = growth_intercept + 50 * growth_slope;
             growth_cv = parameters.fishes_growth_temporal_cv;
-        } else {
+        } /*else {
             // Parameters calculated by generating 1000 fish and 
             // calculating mean and cv of growth parameters
             Mean growth_intercept_mean;
@@ -355,7 +355,7 @@ class Monitor {
             growth_20 = growth_intercept_mean + 20 * growth_slope_mean;
             growth_50 = growth_intercept_mean + 50 * growth_slope_mean;
             growth_cv = growth_intercept_sd/growth_intercept_mean;
-        }
+        }*/
         population_file
             << "growth_20\t" << growth_20 << "\n"
             << "growth_50\t" << growth_50 << "\n"

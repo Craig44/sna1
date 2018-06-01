@@ -107,7 +107,7 @@ sna1.exe: $(HPPS)
 
 # Executable for debugging
 sna1.debug: $(HPPS) $(CPPS) requires
-	$(CXX) $(CXX_FLAGS) -g -O0 $(INC_DIRS) -o$@ sna1.cpp $(LIB_DIRS) $(LIBS)
+	$(CXX) $(CXX_FLAGS) -g -O0 $(INC_DIRS) -DDEBUG -o$@ sna1.cpp $(LIB_DIRS) $(LIBS)
 
 # Executable for profiling
 sna1.prof: $(HPPS) $(CPPS)

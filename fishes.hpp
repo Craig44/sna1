@@ -6,6 +6,12 @@
 #include "environ.hpp"
 #include "random.hpp"
 
+    /**
+     * Normal random number generator for random walk preference movement this is global because if I create an instance on each individual they will have the same seed
+     * so just have a single random number generator shared by all individuals, thus creating a truly random process.
+     */
+    Normal individual_normal_generator;
+
 class Environ; // fwd declare
 /**
  * A fish
@@ -17,10 +23,7 @@ class Fish {
      */
     Region home;
 
-    /**
-     * Normal random number generator for random walk preference movement
-     */
-    Normal normal_generator;
+
     /**
      * A pointer to the environment
      */
@@ -329,11 +332,17 @@ class Fish {
       if (now == 1900) {
         cout << "about to use preference movement to move fish lat = " << lat << " lon " << lon << " year " << year(now) << " or year = "<< now << endl;
         // pull gradients zonal and meridinal
-        double preference = the_environ->get_preference(lat, lon,year(now));
-        normal_generator = {preference, parameters.standard_dev_for_preference};
-        cout << "calculating preference movement, lat = " << lat << " long = " << lon << " preference = " << preference << endl;
-        double jump = normal_generator.random();
-        cout << "jump = " << jump << endl;
+        vector<double> gradient = the_environ->get_gradient(lat, lon, year(now));
+        individual_normal_generator = {gradient[0], parameters.standard_dev_for_preference};
+        cout << "calculating preference movement, lat = " << lat << " long = " << lon << " gradient long direction = " << gradient[0] << " gradient lat direction = " << gradient[1] << endl;
+        double zonal_jump = individual_normal_generator.random();
+        lon += zonal_jump;
+        individual_normal_generator = {gradient[1], parameters.standard_dev_for_preference};
+
+        double meridional_jump = individual_normal_generator.random();
+        cout << "jump = " << meridional_jump << endl;
+        lat += meridional_jump;
+
       }
     }
     /**
