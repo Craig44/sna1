@@ -1,8 +1,7 @@
 #pragma once
 
 #include "requirements.hpp"
-//#include "dimensions.hpp"
-//#include "parameters.hpp"
+
 
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim_all.hpp>
@@ -21,6 +20,7 @@ class Environ {
      *  An accessor that returns the preference to a zonal and meridional gradient relative to where they are, in a year
      */
     vector<double> get_gradient(double lat ,double lon, unsigned year) {
+      //cout << " lon = " << lon << " index = " << get_long_index(lon) << " lat = " << lat << " index = " <<  get_lat_index(lat) << endl;
       return {zonal_preference_by_year_[year][get_lat_index(lat)][get_long_index(lon)],meridional_preference_by_year_[year][get_lat_index(lat)][get_long_index(lon)]};
     }
     /*
@@ -28,7 +28,11 @@ class Environ {
      */
       void initialise(void) {
         read_in_data();
+        cout << "finished reading in data" << endl;
+        calculate_preference_layer();
+        cout << "finsihed calculating preference layer" << endl;
         calculate_gradient();
+        cout << "finished calculating gradien" << endl;
       }
 
       void finalise(void) {
@@ -37,10 +41,60 @@ class Environ {
         // print preference, zonal and meridional gradients
         boost::filesystem::create_directories("output/environ/preference");
 
+        for (unsigned year : years_) {
+          string temp_year = boost::lexical_cast<std::string>(year);
+          string temp_dir = "output/environ/preference/" + temp_year + ".tsv";
+          ofstream preference_by_year(temp_dir);
+          preference_by_year << year << "\t";
+          for (auto lon : lon_mids_) {
+            preference_by_year << lon << "\t";
+          }
+          preference_by_year << "\n";
+          for (unsigned i = 0; i < n_lats_; ++i) {
+            preference_by_year << lat_mids_[i] << "\t";
+            for (unsigned j = 0; j < n_lons_; ++j) {
+              preference_by_year << preference_by_year_[year][i][j] << "\t";
+            }
+            preference_by_year << "\n";
+          }
+        }
+
         boost::filesystem::create_directories("output/environ/zonal");
-
+        for (unsigned year : years_) {
+          string temp_year = boost::lexical_cast<std::string>(year);
+          string temp_dir = "output/environ/zonal/" + temp_year + ".tsv";
+          ofstream preference_by_year(temp_dir);
+          preference_by_year << year << "\t";
+          for (auto lon : lon_mids_) {
+            preference_by_year << lon << "\t";
+          }
+          preference_by_year << "\n";
+          for (unsigned i = 0; i < n_lats_; ++i) {
+            preference_by_year << lat_mids_[i] << "\t";
+            for (unsigned j = 0; j < n_lons_; ++j) {
+              preference_by_year << zonal_preference_by_year_[year][i][j] << "\t";
+            }
+            preference_by_year << "\n";
+          }
+        }
         boost::filesystem::create_directories("output/environ/meridional");
-
+        for (unsigned year : years_) {
+          string temp_year = boost::lexical_cast<std::string>(year);
+          string temp_dir = "output/environ/meridional/" + temp_year + ".tsv";
+          ofstream preference_by_year(temp_dir);
+          preference_by_year << year << "\t";
+          for (auto lon : lon_mids_) {
+            preference_by_year << lon << "\t";
+          }
+          preference_by_year << "\n";
+          for (unsigned i = 0; i < n_lats_; ++i) {
+            preference_by_year << lat_mids_[i] << "\t";
+            for (unsigned j = 0; j < n_lons_; ++j) {
+              preference_by_year << meridional_preference_by_year_[year][i][j] << "\t";
+            }
+            preference_by_year << "\n";
+          }
+        }
       }
 
   protected:
@@ -67,11 +121,11 @@ class Environ {
       unsigned index = 0;
       // skip the first bin as that is a lower bound and nothing should be less than that.
       for (unsigned this_lon = 1; this_lon <  lons_.size(); ++this_lon,++index) {
-        if (lon < lons_[this_lon]) {
+        if (lon <= lons_[this_lon]) {
           return index;
         }
       }
-      return lons_.size() - 1;
+      return n_lons_;
     }
 
     /*
@@ -80,25 +134,24 @@ class Environ {
     unsigned get_lat_index(double lat) {
       unsigned index = 0;
       // skip the first bin as that is a lower bound and nothing should be less than that.
-      for (unsigned this_lat = 1; this_lat <  lats_.size(); ++this_lat,++index) {
-        if (lat > lats_[this_lat]) {
+      for (unsigned this_lat = 1; this_lat < lats_.size(); ++this_lat,++index) {
+        if (lat <= lats_[this_lat]) {
           return index;
         }
       }
-      return lats_.size() - 1;
+      return n_lats_;
     }
-
-
 
 
     /*
      * This method is responsible for reading in preference data.
     */
     void calculate_gradient(void) {
+      cout << "calculate gradient" << endl;
       // calcualte cell mid_points
-      for (unsigned i = 0; i < (n_lats_ - 1); ++i)
+      for (unsigned i = 0; i < n_lats_; ++i)
         lat_mids_.push_back((lats_[i] + lats_[i+1])/2.0);
-      for (unsigned i = 0; i < (n_lons_ - 1); ++i)
+      for (unsigned i = 0; i < n_lons_; ++i)
         lon_mids_.push_back((lons_[i] + lons_[i+1])/2.0);
 
 
@@ -110,7 +163,7 @@ class Environ {
             // calcualte meridional gradient
             if (i == 0) {
               meridional_preference_by_year_[year][i][j] = preference_by_year_[year][i + 1][j] - preference_by_year_[year][i][j];
-            } else if (i == (n_lons_ - 1)) {
+            } else if (i == (n_lats_ - 1)) {
               meridional_preference_by_year_[year][i][j] = preference_by_year_[year][i][j] - preference_by_year_[year][i - 1][j];
             } else {
               meridional_preference_by_year_[year][i][j] = (preference_by_year_[year][i + 1][j] - preference_by_year_[year][i - 1][j]) / 2.0;
@@ -170,11 +223,14 @@ class Environ {
           optimum_preference = parameters.depth_optimum;
           lower_preference = parameters.depth_lower;
           upper_preference = parameters.depth_upper;
+          cout << "about to calculate depth preference optimum = " << optimum_preference << " lower = " << lower_preference << " upper = " << upper_preference << endl;
 
         } else if (dir == 1) {
           optimum_preference = parameters.sst_optimum;
           lower_preference = parameters.sst_lower;
           upper_preference = parameters.sst_upper;
+          cout << "about to calculate sst preference optimum = " << optimum_preference << " lower = " << lower_preference << " upper = " << upper_preference << endl;
+
         }
         boost::filesystem::path current_dir(dirs[dir]); //
 
@@ -191,8 +247,7 @@ class Environ {
           vector<string> file_name_parts;
 
           // make exceptions for certain files, this could be a way allowing for multiple components such as having 0 areas such as islands that individuals cannot head to.
-          if (name == "lats_.txt") {
-            cerr << "found lats_.txt" << endl;
+          if (name == "lats.txt") {
             lat_file_found = true;
             boost::filesystem::ifstream file{iter->path()};
             while(getline(file, current_line)){
@@ -206,12 +261,13 @@ class Environ {
               for (auto col : current_line_parts) {
                 if (!To<double>(col, element)) {
                   cerr << "failed to convert " << col << " to double, either the code is shit or you have character in the lats.txt file" << endl;
+                  exit (EXIT_FAILURE);
                 }
                 cerr << "loading values " << element << endl;
                 lats_.push_back(element);
               }
             }
-            n_lats_ = lats_.size();
+            n_lats_ = lats_.size() - 1; // These are upper and lower bounds
             continue;
           }
 
@@ -229,11 +285,12 @@ class Environ {
               for (auto col : current_line_parts) {
                 if (!To<double>(col, element)) {
                   cerr << "failed to convert " << col << " to double, either the code is shit or you have character in the lons.txt file" << endl;
+                  exit (EXIT_FAILURE);
                 }
                 lons_.push_back(element);
               }
             }
-            n_lons_ = lons_.size();
+            n_lons_ = lons_.size() - 1; // These are upper and lower bounds
             continue;
           }
           if (name == "depths.txt") {
@@ -267,13 +324,15 @@ class Environ {
           unsigned temp_year;
           if (!To<unsigned>(file_name_parts[0], temp_year)) {
             cerr << "failed to convert " << file_name_parts[0] << " to unsigned int, either the code is shit or you have characters or decimals in the file name" << endl;
+            exit (EXIT_FAILURE);
           }
           years_.push_back(temp_year);
-          cerr << "converted = " << temp_year << endl;
 
           // CHeck it isn't empty
-          if (boost::filesystem::is_empty(iter->path()))
+          if (boost::filesystem::is_empty(iter->path())) {
             cerr << "file is empty something has gone wrong" << endl;
+            exit (EXIT_FAILURE);
+          }
 
           // Now read in the file and save it into preferences array, I am going to make assumptions here these are
           // rows = lat 30
@@ -288,7 +347,6 @@ class Environ {
           unsigned lat_iter = 0;
           while(getline(file, current_line)){
             vector<double> row_vector;
-            cerr << "entering line number = " << lat_iter + 1 << " where line = " << current_line << endl;
             // Replace seperators
             boost::replace_all(current_line, "\t", " ");
             boost::replace_all(current_line, ",", " ");
@@ -297,12 +355,17 @@ class Environ {
             // Break up columns
             boost::split(current_line_parts, current_line, boost::is_any_of(" "));
 
+            if (current_line_parts.size() != n_lons_) {
+              cerr << "found " << current_line_parts.size() << " columns in file '" << name << "', when there should be " << n_lons_ << endl;
+              exit (EXIT_FAILURE);
+            }
             // iterate over and store
             unsigned long_iter = 0;
             double element;
             for (auto col : current_line_parts) {
               if (!To<double>(col, element)) {
                 cerr << "failed to convert " << col << " to double, either the code is shit or you have character at row '"<< lat_iter + 1 << "' and column '" << long_iter + 1 << "'" << endl;
+                exit (EXIT_FAILURE);
               }
               row_vector.push_back(pref_function(element, optimum_preference, lower_preference, upper_preference));
 
@@ -313,24 +376,51 @@ class Environ {
             }
             ++lat_iter;
           } // read line
+          if (lat_iter != n_lats_) {
+            cerr << "found " << (lat_iter) << " rows in file '" << name << "', when there should be " << n_lats_ <<  " please fix this " << endl;
+            exit (EXIT_FAILURE);
+          }
         } // Directory in Dirs
       } // Dirs
 
       if (!long_file_found) {
-        cout << "could not find longs.txt, this is an expected file please check." << endl;
+        cerr << "error: could not find longs.txt, this is an expected file please check it exists." << endl;
         exit (EXIT_FAILURE);
       }
       if (!lat_file_found) {
-        cout << "could not find lats_.txt, this is an expected file please check." << endl;
+        cerr << "error: could not find lats.txt, this is an expected file please check it exists." << endl;
         exit (EXIT_FAILURE);
       }
 
+      parameters.min_lat = lats_[0];
+      parameters.max_lat = lats_[n_lats_];
+      parameters.min_lon = lons_[0];
+      parameters.max_lon = lons_[n_lons_];
       //TODO
       // Check lats_ and longs are consistent, we don't want an issue where we are accessing out of memory elements in any given year
       // CHeck there is a preference for each year.
-      // send an expression to the C++ error handler catch()
-
-
+      // send an expression to the C++ error handler catch(),  currently just using the exit() call.
     }
 
+    /*
+     * This method is responsible for calculating the final preference which currently
+     * is just made up of depth and sst.
+    */
+    void calculate_preference_layer(void) {
+      for (auto year : years_) {
+        // Allocate memory
+        preference_by_year_[year].resize(n_lats_);
+        zonal_preference_by_year_[year].resize(n_lats_);
+        meridional_preference_by_year_[year].resize(n_lats_);
+        for (unsigned i = 0; i < n_lats_; ++i) {
+          preference_by_year_[year][i].resize(n_lons_);
+          zonal_preference_by_year_[year][i].resize(n_lons_);
+          meridional_preference_by_year_[year][i].resize(n_lons_);
+          for (unsigned j = 0; j < n_lons_; ++j) {
+            preference_by_year_[year][i][j] = depths_[i][j];// pow(sst_[year][i][j] * depths_[i][j], 0.5); // 0.5 = 1/n where n = 2
+            //cout << "i = " << i + 1 << " j = " << j + 1 << " preference = " << preference_by_year_[year][i][j] << endl;
+          }
+        }
+      }
+    }
 };  // class Environ*/

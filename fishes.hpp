@@ -23,7 +23,6 @@ class Fish {
      */
     Region home;
 
-
     /**
      * A pointer to the environment
      */
@@ -52,6 +51,10 @@ class Fish {
      * lonigtude of this fish
      */
     double lon;
+
+    map<unsigned, double> lat_memory;
+    map<unsigned, double> lon_memory;
+
     /**
      * Intercept of the length increment to length relaion
      */
@@ -195,9 +198,10 @@ class Fish {
         // create a link to the environemnt pointer
         the_environ = &environ_class_to_assign;
 
-        // TODO add something here
-        lat = -55.0;
-        lon = 175.0;
+        lat = -45.0;
+        lon = 177.0;
+        lat_memory[now] = lat;
+        lon_memory[now] = lon;
 
         home = region_;
         region = home;
@@ -218,6 +222,33 @@ class Fish {
         //age = 0;
     }
 
+    /**
+     * overload the born function for reporting purposes
+     * Birth this fish
+     *
+     */
+    void born(Region region_) {
+        lat = -45.0;
+        lon = 177.0;
+
+        home = region_;
+        region = home;
+
+        birth = now;
+        death = 0;
+
+        sex = (chance()<parameters.fishes_males)?male:female;
+
+        growth_init(0);
+
+        mature = false;
+
+        tag = 0;
+
+        method_last = -1;
+
+        //age = 0;
+    }
     /**
      * Initialises growth parameters and length for this fish
      *
@@ -329,20 +360,31 @@ class Fish {
      * Move this fish
      */
     void preference_movement(void) {
-      if (now == 1900) {
-        cout << "about to use preference movement to move fish lat = " << lat << " lon " << lon << " year " << year(now) << " or year = "<< now << endl;
+      if (now >= 1900) {
+        //cout << "about to use preference movement to move fish lat = " << lat << " lon " << lon << " year " << year(now) << " or year = "<< now << endl;
         // pull gradients zonal and meridinal
         vector<double> gradient = the_environ->get_gradient(lat, lon, year(now));
+        //cout << "calculating preference movement, lat = " << lat << " long = " << lon << " gradient long direction = " << gradient[0] << " gradient lat direction = " << gradient[1] << endl;
         individual_normal_generator = {gradient[0], parameters.standard_dev_for_preference};
-        cout << "calculating preference movement, lat = " << lat << " long = " << lon << " gradient long direction = " << gradient[0] << " gradient lat direction = " << gradient[1] << endl;
+
         double zonal_jump = individual_normal_generator.random();
+
         lon += zonal_jump;
+        if (lon > parameters.max_lon)
+          lon -= zonal_jump;
+        else if (lon < parameters.min_lon)
+          lon -= zonal_jump;
+        lon_memory[year(now)] = lon;
         individual_normal_generator = {gradient[1], parameters.standard_dev_for_preference};
 
         double meridional_jump = individual_normal_generator.random();
-        cout << "jump = " << meridional_jump << endl;
+        //cout << "jump = " << meridional_jump << endl;
         lat += meridional_jump;
-
+        if (lat > parameters.max_lat)
+          lat -= meridional_jump;
+        else if (lat < parameters.min_lat)
+          lat -= meridional_jump;
+        lat_memory[year(now)] = lat;
       }
     }
     /**
@@ -536,6 +578,24 @@ class Fishes : public std::vector<Fish> {
     void finalise(void){
         boost::filesystem::create_directories("output/fishes");
 
+        std::ofstream movement_file("output/fishes/movement.tsv");
+
+        unsigned fish_number = 1;
+        for (auto& fish : *this) {
+          movement_file << "fish_" << fish_number << "\t";
+          for (unsigned year = 1899; year < 2018; ++year) {
+            if (fish.lat_memory[year] < 0)
+              movement_file << fish.lat_memory[year] << "\t";
+          }
+          movement_file << "\n";
+          movement_file << "fish_" << fish_number << "\t";
+          for (unsigned year = 1899; year < 2018; ++year) {
+            if (fish.lon_memory[year] > 0)
+              movement_file << fish.lon_memory[year] << "\t";
+          }
+          movement_file << "\n";
+          ++fish_number;
+        }
         std::ofstream values("output/fishes/values.tsv");
         values << "name\tvalue" << std::endl
                << "fishes_size\t" << size() << std::endl
@@ -549,7 +609,7 @@ class Fishes : public std::vector<Fish> {
         pars << "fish\tintercept\tslope\tk\tL_inf\n";
         std::ofstream trajs("output/fishes/growth_trajs.tsv");
         trajs << "fish\ttime\tlength\tlength_new\n";
-/*        for (int index = 0; index < 100; index++) {
+        for (int index = 0; index < 100; index++) {
             Fish fish;
             fish.born(HG);
             pars << index << "\t"
@@ -565,7 +625,7 @@ class Fishes : public std::vector<Fish> {
                 fish.growth();
                 trajs << fish.length << "\n";
             }
-        }*/
+        }
     }
 
 

@@ -62,6 +62,11 @@ class Parameters : public Structure<Parameters> {
     // Derived parameter from the diffusion parameter
     double standard_dev_for_preference;
 
+    double max_lat;
+    double min_lat;
+
+    double max_lon;
+    double min_lon;
     // preference parameters
     double sst_optimum;
     double sst_lower;
@@ -359,9 +364,9 @@ class Parameters : public Structure<Parameters> {
             .data(depth_optimum, "depth_optimum")
             .data(depth_lower, "depth_lower")
             .data(depth_upper, "depth_upper")
-            .data(npp_optimum, "npp optimum")
-            .data(npp_lower, "npp_lower")
-            .data(npp_upper, "npp_upper")
+            //.data(npp_optimum, "npp optimum")
+            //.data(npp_lower, "npp_lower")
+            //.data(npp_upper, "npp_upper")
 
             .data(fishes_seed_z, "fishes_seed_z")
             
