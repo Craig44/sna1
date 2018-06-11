@@ -3,21 +3,27 @@
 #include "requirements.hpp"
 #include "dimensions.hpp"
 #include "parameters.hpp"
-#include "environ.hpp"
+#include "Environment/Environment.hpp"
 #include "random.hpp"
 
-    /**
-     * Normal random number generator for random walk preference movement this is global because if I create an instance on each individual they will have the same seed
-     * so just have a single random number generator shared by all individuals, thus creating a truly random process.
-     */
-    Normal individual_normal_generator;
 
 class Environ; // fwd declare
+Normal individual_normal_generator;
+
 /**
  * A fish
  */
 class Fish {
  public:
+    Fish();
+    Fish(Engine& engine, Environ* this_environ) :
+      engine_(engine),
+      the_environ(this_environ)
+    { }
+
+    Engine& engine_;
+    Environ* the_environ;
+
     /**
      * Home region for this fish
      */
@@ -26,7 +32,6 @@ class Fish {
     /**
      * A pointer to the environment
      */
-    Environ* the_environ; // Every fish has a pointer to the enviroment so that they can movec based on where they are for preference movement.
     /**
      * Time of birth of this fish
      */
@@ -45,12 +50,14 @@ class Fish {
     /**
      * latitude of this fish
      */
-    double lat;
+    double latitude;
 
     /**
      * lonigtude of this fish
      */
-    double lon;
+    double longitude;
+
+
 
     map<unsigned, double> lat_memory;
     map<unsigned, double> lon_memory;
@@ -160,14 +167,15 @@ class Fish {
      *  - seed fish are distributed evenly across areas
      *  - maturity is approximated by maturation schedule
      */
-    void seed(Environ &environ_class_to_assign) {
-        the_environ = &environ_class_to_assign;
+    void seed() {
+      cout << "seed a fish" << endl;
+
 
         home = Region(int(parameters.fishes_seed_region_dist.random()));
         region = home;
 
-        lat = -55.0;
-        lon = 175.0;
+        latitude = -41.234;
+        longitude = 187.232;
 
         auto seed_age = std::max(1.,std::min(parameters.fishes_seed_age_dist.random(),100.));
         birth = now-seed_age;
@@ -193,15 +201,11 @@ class Fish {
      * Initialises attributes as though this fish is close
      * to age 0
      */
-    void born(Region region_, Environ &environ_class_to_assign) {
+    void born(Region region_) {
+        cout << "initialise a fish" << endl;
 
-        // create a link to the environemnt pointer
-        the_environ = &environ_class_to_assign;
-
-        lat = -45.0;
-        lon = 177.0;
-        lat_memory[now] = lat;
-        lon_memory[now] = lon;
+        latitude = -41.234;
+        longitude = 187.232;
 
         home = region_;
         region = home;
@@ -222,33 +226,6 @@ class Fish {
         //age = 0;
     }
 
-    /**
-     * overload the born function for reporting purposes
-     * Birth this fish
-     *
-     */
-    void born(Region region_) {
-        lat = -45.0;
-        lon = 177.0;
-
-        home = region_;
-        region = home;
-
-        birth = now;
-        death = 0;
-
-        sex = (chance()<parameters.fishes_males)?male:female;
-
-        growth_init(0);
-
-        mature = false;
-
-        tag = 0;
-
-        method_last = -1;
-
-        //age = 0;
-    }
     /**
      * Initialises growth parameters and length for this fish
      *
@@ -360,31 +337,37 @@ class Fish {
      * Move this fish
      */
     void preference_movement(void) {
+      if (now == 1899) {
+        lat_memory[now] = latitude;
+        lon_memory[now] = longitude;
+      }
+
       if (now >= 1900) {
-        //cout << "about to use preference movement to move fish lat = " << lat << " lon " << lon << " year " << year(now) << " or year = "<< now << endl;
+        //cout << "about to use preference movement to move fish lat = " << latitude << " longitude " << lon << " year " << year(now) << " or year = "<< now << endl;
         // pull gradients zonal and meridinal
-        vector<double> gradient = the_environ->get_gradient(lat, lon, year(now));
-        //cout << "calculating preference movement, lat = " << lat << " long = " << lon << " gradient long direction = " << gradient[0] << " gradient lat direction = " << gradient[1] << endl;
+        vector<double> gradient = the_environ->get_gradient(latitude, longitude, year(now));
         individual_normal_generator = {gradient[0], parameters.standard_dev_for_preference};
 
         double zonal_jump = individual_normal_generator.random();
 
-        lon += zonal_jump;
-        if (lon > parameters.max_lon)
-          lon -= zonal_jump;
-        else if (lon < parameters.min_lon)
-          lon -= zonal_jump;
-        lon_memory[year(now)] = lon;
+        longitude += zonal_jump;
+        if (longitude > parameters.max_lon)
+          longitude -= zonal_jump;
+        else if (longitude < parameters.min_lon)
+          longitude -= zonal_jump;
+        lon_memory[year(now)] = longitude;
         individual_normal_generator = {gradient[1], parameters.standard_dev_for_preference};
 
         double meridional_jump = individual_normal_generator.random();
         //cout << "jump = " << meridional_jump << endl;
-        lat += meridional_jump;
-        if (lat > parameters.max_lat)
-          lat -= meridional_jump;
-        else if (lat < parameters.min_lat)
-          lat -= meridional_jump;
-        lat_memory[year(now)] = lat;
+        latitude += meridional_jump;
+        if (latitude > parameters.max_lat)
+          latitude -= meridional_jump;
+        else if (latitude < parameters.min_lat)
+          latitude -= meridional_jump;
+        lat_memory[year(now)] = latitude;
+        cout << setprecision(10)  << "calculating preference movement, lat = " << latitude - meridional_jump << " long = " << longitude - zonal_jump << " gradient long direction = " << gradient[0] << " long jump = " << zonal_jump << " gradient lat direction = " << gradient[1] << " lat jump = " << meridional_jump << endl;
+
       }
     }
     /**
@@ -442,11 +425,14 @@ class Fish {
  */
 
 
-class Fishes : public std::vector<Fish> {
+class Fishes : public vector<Fish> {
  public:
 
-    Fishes(int size = 0):
-        std::vector<Fish>(size){}
+  vector<Fish> partition_;
+    // constructor that sets intial vector of fishes = size.
+    Fishes(int size = 0, Engine& engine, Environ* this_environ) :
+      partition_(size, Fish(engine, this_environ))
+      {}
 
     /**
      * Population scalar
@@ -456,8 +442,9 @@ class Fishes : public std::vector<Fish> {
      */
     double scalar = 1.0;
 
-    // we want access to this class for some functions.
-    Environ* this_environemnt;
+
+
+
 
     /**
      * Seed the population with individuals that have attribute values 
@@ -466,11 +453,11 @@ class Fishes : public std::vector<Fish> {
      * This method is usually used in `Model::pristine` to reduce burn-in times
      * but is a separate method so that it can also be used in unit tests. 
      */
-    void seed(unsigned int number, Environ &this_environ) {
+    void seed(unsigned int number) {
         clear();
         resize(number);
         for (auto& fish : *this) {
-            fish.seed(this_environ);
+            fish.seed();
         }
     }
 
@@ -576,6 +563,7 @@ class Fishes : public std::vector<Fish> {
      * Finalise (e.g. write values to file)
      */
     void finalise(void){
+        cerr << "enter finalise fishes" << endl;
         boost::filesystem::create_directories("output/fishes");
 
         std::ofstream movement_file("output/fishes/movement.tsv");
@@ -583,16 +571,17 @@ class Fishes : public std::vector<Fish> {
         unsigned fish_number = 1;
         for (auto& fish : *this) {
           movement_file << "fish_" << fish_number << "\t";
-          for (unsigned year = 1899; year < 2018; ++year) {
-            if (fish.lat_memory[year] < 0)
-              movement_file << fish.lat_memory[year] << "\t";
+          for (auto lat_mem : fish.lat_memory) {
+            if (lat_mem.second < 0)
+              movement_file << lat_mem.second << "\t";
           }
           movement_file << "\n";
           movement_file << "fish_" << fish_number << "\t";
-          for (unsigned year = 1899; year < 2018; ++year) {
-            if (fish.lon_memory[year] > 0)
-              movement_file << fish.lon_memory[year] << "\t";
+          for (auto lon_mem : fish.lon_memory) {
+            if (lon_mem.second > 0)
+              movement_file << lon_mem.second << "\t";
           }
+
           movement_file << "\n";
           ++fish_number;
         }
@@ -626,6 +615,8 @@ class Fishes : public std::vector<Fish> {
                 trajs << fish.length << "\n";
             }
         }
+        cerr << "exit finalise fishes" << endl;
+
     }
 
 

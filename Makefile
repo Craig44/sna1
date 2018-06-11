@@ -79,7 +79,7 @@ requires/r-packages.installed:
 	touch $@
 
 
-requires: requires/boost/lib requires/stencila requires/r-packages.installed
+requires: requires/boost/stage/lib requires/stencila requires/r-packages.installed
 
 
 #############################################################
@@ -87,23 +87,27 @@ requires: requires/boost/lib requires/stencila requires/r-packages.installed
 $(info entering executable)
 # Define compile options and required libraries
 CXX_FLAGS := -std=c++11 -Wall -Wno-unused-function -Wno-unused-local-typedefs -Wno-unused-variable -pthread
-INC_DIRS := -I. -Irequires/boost -Irequires/stencila
-LIB_DIRS := -Lrequires/boost/lib
-LIBS := -lboost_system-mgw51-mt-1_62 -lboost_filesystem-mgw51-mt-1_62
+INC_DIRS := -I. -Irequires/boost -Irequires/stencila 
+sub_dir := $(shell find_linux src -type d)
+INC_DIRS += $(addprefix  -I,  $(sub_dir))
+
+LIB_DIRS := -Lrequires/boost/stage/lib
+LIBS := -lboost_system-mgw51-mt-1_62 -lboost_filesystem-mgw51-mt-1_62 -lboost_random-mgw51-mt-1_62
 
 
 # Find all .hpp and .cpp files (to save time don't recurse into subdirectories)
-HPPS := $(shell find_linux . -maxdepth 1 -name "*.hpp")
-CPPS := $(shell find_linux . -maxdepth 1 -name "*.cpp")
-TEST_CPPS = $(wildcard tests/*.cpp)
+SRC := $(shell find_linux src -maxdepth 2 -mindepth 1 -name "*.hpp")
+SRC += $(shell find_linux src -maxdepth 2 -mindepth 2 -name "*.cpp")
+main := $(shell find_linux src -maxdepth 1 -name "*.cpp")
 
-$(warning cpps are $(CPPS))
-$(warning hpps $(HPPS))
+$(warning source files are $(SRC))
+$(warning includes are $(INC_DIRS))
+$(warning main $(main))
 $(warning requires = requires)
 
 # Executable for normal use
-sna1.exe: $(HPPS)
-	$(CXX) $(CXX_FLAGS) -O3 $(INC_DIRS) -o$@ sna1.cpp $(LIB_DIRS) $(LIBS)
+sna1.exe: $(SRC)
+	$(CXX) $(CXX_FLAGS) -O3 $(INC_DIRS) -o$@ $(main) $(LIB_DIRS) $(LIBS)
 
 # Executable for debugging
 sna1.debug: $(HPPS) $(CPPS) requires

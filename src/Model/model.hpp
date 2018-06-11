@@ -1,10 +1,10 @@
 #pragma once // This is a call to the compiler to say that if included in a source file, only to parse it once <http://en.cppreference.com/w/cpp/preprocessor/impl>
 
-#include "random.hpp"
+#include "src\random.hpp"
 
 #include "parameters.hpp"
 
-#include "environ.hpp"
+#include "Environment/Environment.hpp"
 #include "fishes.hpp"
 #include "harvest.hpp"
 #include "monitor.hpp"
@@ -17,15 +17,17 @@ using namespace std;
  */
 class Model {
  public:
+    Model(Engine& engine) : model_engine_(engine) {};
+    ~Model();
 
-    Environ this_environ; // DO NOT call this environ, that is a macro in stdlib.h on windows which caused me many hours of suffering trying to find.
-    Fishes fishes;
+    Environ* this_environ; // DO NOT call this environ, that is a macro in stdlib.h on windows which caused me many hours of suffering trying to find.
+    Fishes fishes(model_engine_, this_environ);
     Harvest harvest;
     Monitor monitor;
 
     void initialise(void) {
         parameters.initialise();
-        this_environ.initialise();
+        this_environ->initialise();
         fishes.initialise();
         harvest.initialise();
         monitor.initialise();
@@ -33,7 +35,7 @@ class Model {
 
     void finalise(void) {
         parameters.finalise();
-        this_environ.finalise();
+        //this_environ->finalise();
         fishes.finalise();
         harvest.finalise();
         monitor.finalise();
@@ -94,7 +96,7 @@ class Model {
             }
         }
         #ifdef DEBUG
-        cerr << "finished recruitss" << endl;
+        cerr << "finished recruits" << endl;
         #endif
         /*****************************************************************
          * Fish population dynamics
@@ -319,8 +321,6 @@ class Model {
         }
 
 
-
-
         // Update harvest.biomass_vulnerable for use in monioring
         harvest.biomass_vulnerable_update(fishes);
 
@@ -337,7 +337,7 @@ class Model {
      */
     void pristine(Time time, function<void()>* callback = 0, bool called_after_seed = false){
 
-        cout << "size of a fish = " << sizeof(fishes[0]);
+        cout << "size of a fish = " << sizeof(fishes[0]) << endl;
         // Set `now` to some arbitrary time (but high enough that fish
         // will have a birth time (unsigned int) greater than 0)
         now = 1;
@@ -368,7 +368,7 @@ class Model {
         // Should instead exit when stability in population characteristics
         // Stability is defined as total biomass
         std::vector<unsigned> steps_to_check = {50,100,150,200};
-        double equilibrium_tolerance = 0.01; // TODO might want to play with this number and the one above
+        double equilibrium_tolerance = 0.0001; // TODO might want to play with this number and the one above
         steps_to_check.size();
         double initial_biomass = 0;
         int steps = 0;
@@ -460,6 +460,11 @@ class Model {
             if (callback) (*callback)();
             now++;
         }
+        cerr << "finished annual cycle" << endl;
     }
+
+ private:
+    Engine& model_engine_;
+
 
 };  // end class Model

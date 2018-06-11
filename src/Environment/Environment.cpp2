@@ -20,22 +20,27 @@ class Environ {
      *  An accessor that returns the preference to a zonal and meridional gradient relative to where they are, in a year
      */
     vector<double> get_gradient(double lat ,double lon, unsigned year) {
-      //cout << " lon = " << lon << " index = " << get_long_index(lon) << " lat = " << lat << " index = " <<  get_lat_index(lat) << endl;
+      cout << "lon = " << lon << " index = " << get_long_index(lon) << " lat = " << lat << " index = " <<  get_lat_index(lat) << endl;
       return {zonal_preference_by_year_[year][get_lat_index(lat)][get_long_index(lon)],meridional_preference_by_year_[year][get_lat_index(lat)][get_long_index(lon)]};
     }
     /*
      * This method will read in data and do preliminary calculations and checks.
      */
       void initialise(void) {
+        cout << "standard deviation for diffution = " << parameters.standard_dev_for_preference << endl;
         read_in_data();
         cout << "finished reading in data" << endl;
         calculate_preference_layer();
         cout << "finsihed calculating preference layer" << endl;
         calculate_gradient();
-        cout << "finished calculating gradien" << endl;
+        cout << "finished calculating check for initial values -45 and 177" << endl;
+        vector<double> val = get_gradient(-41.234, 187.232, 1900);
+        cout << "lat index = " << get_lat_index(-41.234) << " long index = " <<  get_long_index(187.232) <<  " zonal (u) = " << val[0] <<  " meridional = " << val[1] << endl;
+
       }
 
       void finalise(void) {
+        cerr << "finalise environ" << endl;
         // Generate input layer
         boost::filesystem::create_directories("output/environ");
         // print preference, zonal and meridional gradients
@@ -95,6 +100,7 @@ class Environ {
             preference_by_year << "\n";
           }
         }
+        cerr << "exit finailise environ" <<endl;
       }
 
   protected:
@@ -108,12 +114,12 @@ class Environ {
 
     vector<double>                        lats_; // These are expected to be upper and lower bins for each cell e.g. 10 20 30 = 2 cells with midpoints |10.5|20.5|
     vector<double>                        lons_;
-    vector<double>                        lon_mids_;
+    vector<double>                        lon_mids_; // mid points for reporting
     vector<double>                        lat_mids_;
     vector<unsigned>                      years_;
     unsigned                              n_lats_;
     unsigned                              n_lons_;
-
+    vector<bool>                          directories_;
     /*
      *  Return the longitude bin index that this longitude is in.
      */
@@ -211,7 +217,8 @@ class Environ {
       bool long_file_found = false;
       string current_line;
       vector<string> current_line_parts;
-      //map<unsigned, vector<vector<double>>> preference_by_year;
+
+      // So for I have only implemented sst and depth as descriptors of spatial distribution
       vector<string> dirs = {"input/environ/base", "input/environ/sst"};
       double optimum_preference = 0;
       double lower_preference = 0;
@@ -235,8 +242,16 @@ class Environ {
         boost::filesystem::path current_dir(dirs[dir]); //
 
         // if it doesn't exist skip it
-        if (!boost::filesystem::exists(current_dir))
+        if (!boost::filesystem::exists(current_dir)) {
+          directories_.push_back(false);
+          if (dir == 0) {
+            cerr << "could not find directory " << dirs[dir] << endl;
+            exit (EXIT_FAILURE);
+          }
+
           continue;
+        }
+        directories_.push_back(true);
 
         boost::filesystem::recursive_directory_iterator end;
 
@@ -396,6 +411,13 @@ class Environ {
       parameters.max_lat = lats_[n_lats_];
       parameters.min_lon = lons_[0];
       parameters.max_lon = lons_[n_lons_];
+
+      cerr << "min lat = " << parameters.min_lat << " max lat = " << parameters.max_lat << " min long = " << parameters.min_lon << " max long = " << parameters.max_lon << endl;
+      // No time varying preference layer so create time-invarying preference for each year.
+      if (years_.size() <= 0) {
+        for(auto year = 1899; year <= 2019; ++year)
+          years_.push_back(year);
+      }
       //TODO
       // Check lats_ and longs are consistent, we don't want an issue where we are accessing out of memory elements in any given year
       // CHeck there is a preference for each year.
@@ -406,6 +428,7 @@ class Environ {
      * This method is responsible for calculating the final preference which currently
      * is just made up of depth and sst.
     */
+
     void calculate_preference_layer(void) {
       for (auto year : years_) {
         // Allocate memory
@@ -417,7 +440,7 @@ class Environ {
           zonal_preference_by_year_[year][i].resize(n_lons_);
           meridional_preference_by_year_[year][i].resize(n_lons_);
           for (unsigned j = 0; j < n_lons_; ++j) {
-            preference_by_year_[year][i][j] = depths_[i][j];// pow(sst_[year][i][j] * depths_[i][j], 0.5); // 0.5 = 1/n where n = 2
+            preference_by_year_[year][i][j] = depths_[i][j];// pow(sst_[year][i][j] * depths_[i][j], 0.5); // 0.5 = 1/n where n = 2 TODO add back in
             //cout << "i = " << i + 1 << " j = " << j + 1 << " preference = " << preference_by_year_[year][i][j] << endl;
           }
         }

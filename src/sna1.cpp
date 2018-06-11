@@ -1,7 +1,12 @@
-#include "model.hpp"
+#include "Model/model.hpp"
+
+// initialize static random engine to be shared by all instances of the Fish class
 
 int main(int argc, char** argv) {
-    Model model;
+    std::setprecision(10);
+    boost::random::random_device device;
+    Engine engine(device);
+    Model model(engine);
     model.initialise();
 
     try {
@@ -16,8 +21,8 @@ int main(int argc, char** argv) {
                 std::cout
                     << now << "\t"
                     << model.fishes.number(false)/1e6 << "\t" << model.fishes.size()/1e6  << "\t"
-                    << sum(model.fishes.biomass_spawners)/sum(parameters.fishes_b0) << "\t" 
-                    << sum(model.harvest.catch_taken)/sum(model.harvest.biomass_vulnerable) << std::endl; 
+                    << sum(model.fishes.biomass_spawners)/sum(parameters.fishes_b0) << "\t"
+                    << sum(model.harvest.catch_taken)/sum(model.harvest.biomass_vulnerable) << std::endl;
             });
             model.run(1899, 2018, &callback);
         } else {
