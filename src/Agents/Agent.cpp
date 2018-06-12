@@ -2,16 +2,14 @@
 
 #include "Dimensions.h"
 #include "Parameters.h"
-#include "Environment.h"
 #include "Random.h"
 
 #include "Agent.h"
+#include "Environment.cpp"
 
 /*
  * Source code for the Agent class
 */
-
-
 /*************************************************************
  * Attributes
  ************************************************************/
@@ -68,6 +66,34 @@ double Agent::weight(void) const {
  *  - seed fish are distributed evenly across areas
  *  - maturity is approximated by maturation schedule
  */
+void Agent::seed(Environment* environment, Engine* engine) {
+    environemnt_ptr_ = environment;
+    engine_ptr_ = engine;
+    home_ = Region(int(parameters.fishes_seed_region_dist.random()));
+    region_ = home_;
+
+    latitude_ = -41.234;
+    longitude_ = 187.232;
+
+    auto seed_age = std::max(1.,std::min(parameters.fishes_seed_age_dist.random(),100.));
+    birth_ = now-seed_age;
+    death_ = 0;
+
+    sex_ = (chance()<parameters.fishes_males) ? male : female;
+
+    growth_init(seed_age);
+
+    // This an approximation
+    mature_ = chance()<parameters.fishes_maturation(seed_age);
+
+    tag_ = 0;
+
+    method_last_ = -1;
+
+    //age = seed_age;
+}
+
+
 void Agent::seed() {
     home_ = Region(int(parameters.fishes_seed_region_dist.random()));
     region_ = home_;
@@ -99,7 +125,10 @@ void Agent::seed() {
  * Initialises attributes as though this fish is close
  * to age 0
  */
-void Agent::born(Region region) {
+void Agent::born(Region region, Environment* environment, Engine* engine) {
+    environemnt_ptr_ = environment;
+    engine_ptr_ = engine;
+
     latitude_ = -41.234;
     longitude_ = 187.232;
 
@@ -122,6 +151,30 @@ void Agent::born(Region region) {
     //age = 0;
 }
 
+
+void Agent::born(Region region) {
+
+    latitude_ = -41.234;
+    longitude_ = 187.232;
+
+    home_ = region;
+    region_ = home_;
+
+    birth_ = now;
+    death_ = 0;
+
+    sex_ = (chance()<parameters.fishes_males) ? male : female;
+
+    growth_init(0);
+
+    mature_ = false;
+
+    tag_ = 0;
+
+    method_last_ = -1;
+
+    //age = 0;
+}
 /**
  * Initialises growth parameters and length for this fish
  *
@@ -232,13 +285,9 @@ void Agent::maturation(void) {
 
 
 /**
- * Move this fish
+ * apply the longiutidinal jump
  */
 void Agent::zonal_jump(void) {
-
-    lat_memory_[now] = latitude_;
-    lon_memory_[now] = longitude_;
-
     //cout << "about to use preference movement to move fish lat = " << latitude << " longitude " << lon << " year " << year(now) << " or year = "<< now << endl;
     // pull gradients zonal and meridinal
     double velocity = environemnt_ptr_->get_gradient(latitude_, longitude_, year(now))[0];
@@ -252,10 +301,14 @@ void Agent::zonal_jump(void) {
     else if (longitude_ < parameters.min_lon)
       longitude_ -= zonal_jump;
     lon_memory_[year(now)] = longitude_;
-    cout << setprecision(10)  << "calculating preference movement,  long = " << longitude_ - zonal_jump << " gradient long direction = " << velocity << " long jump = " << zonal_jump << endl;
+    //cout << setprecision(10)  << "calculating preference movement,  long = " << longitude_ - zonal_jump << " gradient long direction = " << velocity << " long jump = " << zonal_jump << endl;
 
 }
 
+
+/*
+ * Apply lat jump
+*/
 void Agent::meridional_jump(void) {
   double velocity = environemnt_ptr_->get_gradient(latitude_, longitude_, year(now))[1];
   boost::normal_distribution<> dist {velocity, parameters.standard_dev_for_preference};
@@ -267,9 +320,12 @@ void Agent::meridional_jump(void) {
   else if (latitude_ < parameters.min_lat)
     latitude_ -= meridional_jump;
   lat_memory_[year(now)] = latitude_;
-  cout << "calculating preference movement, lat = " << latitude_ - meridional_jump << " gradient lat direction = " << velocity << " lat jump = " << meridional_jump << endl;
+  //cout << "calculating preference movement, lat = " << latitude_ - meridional_jump << " gradient lat direction = " << velocity << " lat jump = " << meridional_jump << endl;
 }
 
+/*
+ * Apply the actual movement
+*/
 void Agent::preference_movement(void) {
   // Only apply preference movement in first year TODO think about equilibrium spatial distributions
   if (now >= 1900) {

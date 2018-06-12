@@ -19,7 +19,7 @@ class Environment {
     /*
      *  An accessor that returns the preference gradient to a zonal and meridional gradient relative to where they are, in a year
      */
-    vector<double> get_gradient(double lat ,double lon, unsigned year);
+    vector<double> get_gradient(const double & lat ,const double & lon,const  unsigned & year);
 
   private:
     // protected  objects.

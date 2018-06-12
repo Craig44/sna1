@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Agents.h"
-
+#include "Model.h"
 /**
  * The population of `Fish`
  *
@@ -42,6 +42,17 @@ void Agents::finalise(void) {
     movement_file << "\n";
     ++agent_number;
   }
+
+  // print end point of fish that are alive
+  std::ofstream final_locations_file("output/fishes/end_positions.tsv");
+  final_locations_file << "latitude longitude\n";
+  for (auto& agent : *this) {
+    if (agent.alive()) {
+      final_locations_file << agent.latitude_ << " " << agent.longitude_ << endl;
+    }
+  }
+
+
   std::ofstream values("output/fishes/values.tsv");
   values << "name\tvalue" << std::endl
          << "fishes_size\t" << size() << std::endl
@@ -72,7 +83,7 @@ void Agents::finalise(void) {
           trajs << agent.length_ << "\n";
       }
   }*/
-  cerr << "exit finalise fishes" << endl;
+  cerr << "exit agents fishes" << endl;
 }
 
 
@@ -84,8 +95,10 @@ void Agents::finalise(void) {
  * but is a separate method so that it can also be used in unit tests.
  */
 void Agents::seed(unsigned int number) {
+    clear();
+    resize(number);
     for (auto& agent : *this) {
-      agent.seed();
+      agent.seed(model_->get_environment_ptr(), engine_for_seeding_);
     }
 }
 

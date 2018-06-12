@@ -1,19 +1,15 @@
 #pragma once
 
-#include "Requirements.h"
+#include "Environment.h"
 
+class Environemnt;
 /**
  * A fish
  */
 class Agent {
   public:
-    Agent(Engine* engine) :
-        engine_ptr_(engine)
-    {
-    }
-
-
-    // Accessors
+    Agent() {};
+    ~Agent() {};
     /*************************************************************
      * Attributes
      ************************************************************/
@@ -46,8 +42,10 @@ class Agent {
     /*************************************************************
      * Processes
      ************************************************************/
-    void seed();
-    void born(Region region);
+    void seed(); // overload for reporting fish attributes but not run time evaluations
+    void seed(Environment* environment, Engine* engine);
+    void born(Region region); // overload for reporting fish attributes but not run time evaluations
+    void born(Region region, Environment* environment, Engine* engine);
     void growth_init(int age);
     void dies(void);
     bool survival(void);

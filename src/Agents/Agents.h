@@ -4,8 +4,7 @@
 #include "Parameters.h"
 #include "Environment.h"
 #include "Random.h"
-#include "Agent.cpp"
-
+#include "Agent.h"
 /**
  * The population/Partition of `Agents`
  *
@@ -13,14 +12,16 @@
  * the vector of `Agent` objects is intended to be a representative sample of the overall population.
  * The variable, `scalar` is then used to scale other variables, like biomass, to population levels.
  */
+class Model;
 
 class Agents : public std::vector<Agent> {
   public:
     // constructor that sets intial vector of fishes = size.
-    Agents(int size, Engine& engine) :
-      std::vector<Agent>(size, Agent(engine))
+    Agents(int size, Engine* engine, Model* model) :
+      std::vector<Agent>(size, Agent()),
+      model_(model),
+      engine_for_seeding_(engine)
     {}
-    ~Agents() {};
 
     void                    initialise(void);
     void                    finalise(void);
@@ -51,6 +52,8 @@ class Agents : public std::vector<Agent> {
     double                  scalar_ = 1.0;    // Population scalar, Used to scale the things like biomass etc from the size of `fishes` to the
     double                  biomass_ = 1.0;         //Current total biomass (t)
     Array<unsigned int,Regions,Sexes,Ages,Lengths> counts_;
+    Model*                  model_ = nullptr;
+    Engine*                 engine_for_seeding_= nullptr;
 };  // end class Agents
 
 

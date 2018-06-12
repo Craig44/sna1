@@ -15,7 +15,7 @@
 /*
  *  An accessor that returns the preference to a zonal and meridional gradient relative to where they are, in a year
  */
-vector<double> Environment::get_gradient(double lat ,double lon, unsigned year) {
+vector<double> Environment::get_gradient(const double & lat ,const double & lon,const  unsigned & year) {
   //cout << "lon = " << lon << " index = " << get_long_index(lon) << " lat = " << lat << " index = " <<  get_lat_index(lat) << endl;
   return {zonal_preference_by_year_[year][get_lat_index(lat)][get_long_index(lon)],meridional_preference_by_year_[year][get_lat_index(lat)][get_long_index(lon)]};
 }
@@ -32,8 +32,6 @@ void Environment::initialise(void) {
   cout << "finsihed calculating preference layer" << endl;
   calculate_gradient();
   cout << "finished calculating check for initial values -45 and 177" << endl;
-  vector<double> val = get_gradient(-41.234, 187.232, 1900);
-  cout << "lat index = " << get_lat_index(-41.234) << " long index = " <<  get_long_index(187.232) <<  " zonal (u) = " << val[0] <<  " meridional = " << val[1] << endl;
 
 }
 

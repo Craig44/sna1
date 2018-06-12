@@ -4,6 +4,7 @@
 #include "Environment.cpp"
 #include "Harvest.cpp"
 #include "Monitor.cpp"
+#include "Agent.cpp"
 
 #include "Random.h"
 #include "Parameters.h"
@@ -16,18 +17,7 @@
  * Links together the sub-models e.g `Environment`, 'Agents` and `Harvest`
  */
 
-Model::Model(Engine* engine) :
-  agents(parameters.fishes_seed_number, engine),
-  model_engine_ptr_(engine)
-{
-  environemnt = new Environment;
 
-}
-
-Model::~Model() {
-  delete environemnt;
-  environemnt = nullptr;
-}
 
 void Model::initialise(void) {
   parameters.initialise();
@@ -39,7 +29,7 @@ void Model::initialise(void) {
 
 void Model::finalise(void) {
   parameters.finalise();
-  environemnt->finalise();
+  //environemnt->finalise();
   agents.finalise();
   harvest.finalise();
   monitor.finalise();
@@ -53,7 +43,6 @@ void Model::finalise(void) {
 * the population of agent
  */
 void Model::update(void) {
-  cout << "enter update" << endl;
   auto y = year(now);
   bool burnin = (y < Years_min);
 
@@ -80,9 +69,10 @@ void Model::update(void) {
 // Create and insert each recruit into the population
   unsigned int slot = 0;
   for (auto region : regions) {
+
     for (unsigned int index = 0; index < agents.recruitment_instances_(region); index++) {
-      Agent recruit(model_engine_ptr_);
-      recruit.born(Region(region.index()));
+      Agent recruit;
+      recruit.born(Region(region.index()), environemnt, model_engine_ptr_);
 
       // Find a "slot" in population to insert this recruit
       // An empty 'slot' is created when previous agent in the partition die.
@@ -106,6 +96,7 @@ void Model::update(void) {
   /*****************************************************************
    * Agent population dynamics
    ****************************************************************/
+  unsigned counter = 0;
   for (Agent& agent : agents) {
     if (agent.alive()) {
       // This is only half M, I am going to repeat this
@@ -114,7 +105,6 @@ void Model::update(void) {
         agent.maturation();
         //agent.movement();
         agent.preference_movement();
-
         agent.shedding();
 
         if (not burnin) {
@@ -124,7 +114,7 @@ void Model::update(void) {
       }
     }
   }
-// Don't go further if in burn in
+  // Don't go further if in burn in
   if (burnin) {
     return;
   }
