@@ -96,8 +96,8 @@ LIBS := -lboost_system-mgw51-mt-1_62 -lboost_filesystem-mgw51-mt-1_62 -lboost_ra
 
 
 # Find all .hpp and .cpp files (to save time don't recurse into subdirectories)
-SRC := $(shell find_linux src -maxdepth 2 -mindepth 1 -name "*.hpp")
-SRC += $(shell find_linux src -maxdepth 2 -mindepth 2 -name "*.cpp")
+SRC := $(shell find_linux src -maxdepth 3 -mindepth 1 -name "*.h")
+SRC += $(shell find_linux src -maxdepth 3 -mindepth 2 -name "*.cpp") # No source files in upper layer apart from the main();
 main := $(shell find_linux src -maxdepth 1 -name "*.cpp")
 
 $(warning source files are $(SRC))

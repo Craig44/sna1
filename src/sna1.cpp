@@ -1,40 +1,42 @@
-#include "Model/model.hpp"
+#include "Model.cpp"
 
 // initialize static random engine to be shared by all instances of the Fish class
+using namespace std;
+
 
 int main(int argc, char** argv) {
-    std::setprecision(10);
+    setprecision(10);
     boost::random::random_device device;
     Engine engine(device);
-    Model model(engine);
+    Model model;
     model.initialise();
 
     try {
-        std::string task;
+        string task;
         if (argc >= 2) {
             task = argv[1];
         }
         if (task == "run") {
-            std::cout << "year\tfish alive(millions)\t size of population (total)\tstatus(%B0)\texprate\n";
-            std::cout << std::setprecision(2);
-            std::function<void()> callback([&](){
-                std::cout
+            cout << "year\tfish alive(millions)\t size of population (total)\tstatus(%B0)\texprate\n";
+            cout << setprecision(2);
+            function<void()> callback([&](){
+                cout
                     << now << "\t"
-                    << model.fishes.number(false)/1e6 << "\t" << model.fishes.size()/1e6  << "\t"
-                    << sum(model.fishes.biomass_spawners)/sum(parameters.fishes_b0) << "\t"
-                    << sum(model.harvest.catch_taken)/sum(model.harvest.biomass_vulnerable) << std::endl;
+                    << model.agents.number(false)/1e6 << "\t" << model.agents.size()/1e6  << "\t"
+                    << sum(model.agents.biomass_spawners_)/sum(parameters.fishes_b0) << "\t"
+                    << sum(model.harvest.catch_taken_)/sum(model.harvest.biomass_vulnerable_) << endl;
             });
             model.run(1899, 2018, &callback);
         } else {
-            std::cout << "No task (e.g. run) specified" <<std::endl;
+            cout << "No task (e.g. run) specified" << endl;
         }
-    } catch(std::exception& error) {
-        std::cout << "************Error************\n"
+    } catch(exception& error) {
+        cout << "************Error************\n"
                   << error.what() <<"\n"
                   << "******************************\n";
         return 1;
     } catch(...) {
-        std::cout << "************Unknown error************\n";
+        cout << "************Unknown error************\n";
         return 1;
     }
 
