@@ -16,21 +16,21 @@
  */
 class Model {
   public:
-    Model();
-    ~Model();
-
-    Environment* environemnt; // DO NOT call this environ, that is a macro in stdlib.h on windows which caused me many hours of suffering trying to find.
+    Environment* environemnt = nullptr; // DO NOT call this environ, that is a macro in stdlib.h on windows which caused me many hours of suffering trying to find.
     Agents agents;
     Harvest harvest;
     Monitor monitor;
+
+    Model(Engine* engine);
+    ~Model();
 
     void initialise(void);
     void finalise(void);
     void update(void);
     void pristine(Time time, function<void()>* callback = 0, bool called_after_seed = false);
     void run(Time start, Time finish, std::function<void()>* callback = 0,int initial = 0);
-  //private:
-   // Engine& model_engine_;
-
+    Environment*  get_environment(void) const {return environemnt;}
+  private:
+    Engine* model_engine_ptr_ = nullptr;
 };
 // end class Model

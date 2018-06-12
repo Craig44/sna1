@@ -107,7 +107,7 @@ $(warning requires = requires)
 
 # Executable for normal use
 sna1.exe: $(SRC)
-	$(CXX) $(CXX_FLAGS) -O3 $(INC_DIRS) -o$@ $(main) $(LIB_DIRS) $(LIBS)
+	$(CXX) $(CXX_FLAGS) -O3 $(INC_DIRS)  -o$@ $(main) $(LIB_DIRS) $(LIBS)
 
 # Executable for debugging
 sna1.debug: $(HPPS) $(CPPS) requires

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Requirements.h"
 #include "Dimensions.h"
 #include "Parameters.h"
 #include "Environment.h"
@@ -235,20 +234,17 @@ void Agent::maturation(void) {
 /**
  * Move this fish
  */
-void Agent::preference_movement(void) {
-/*
-  if (now == 1899) {
+void Agent::zonal_jump(void) {
+
     lat_memory_[now] = latitude_;
     lon_memory_[now] = longitude_;
-  }
 
-  if (now >= 1900) {
     //cout << "about to use preference movement to move fish lat = " << latitude << " longitude " << lon << " year " << year(now) << " or year = "<< now << endl;
     // pull gradients zonal and meridinal
-    vector<double> gradient = the_environ->get_gradient(latitude_, longitude_, year(now));
-    individual_normal_generator = {gradient[0], parameters.standard_dev_for_preference};
+    double velocity = environemnt_ptr_->get_gradient(latitude_, longitude_, year(now))[0];
+    boost::normal_distribution<> dist {velocity, parameters.standard_dev_for_preference};
 
-    double zonal_jump = individual_normal_generator.random();
+    double zonal_jump = dist(*engine_ptr_);
 
     longitude_ += zonal_jump;
     if (longitude_ > parameters.max_lon)
@@ -256,20 +252,30 @@ void Agent::preference_movement(void) {
     else if (longitude_ < parameters.min_lon)
       longitude_ -= zonal_jump;
     lon_memory_[year(now)] = longitude_;
-    individual_normal_generator = {gradient[1], parameters.standard_dev_for_preference};
+    cout << setprecision(10)  << "calculating preference movement,  long = " << longitude_ - zonal_jump << " gradient long direction = " << velocity << " long jump = " << zonal_jump << endl;
 
-    double meridional_jump = individual_normal_generator.random();
-    //cout << "jump = " << meridional_jump << endl;
-    latitude_ += meridional_jump;
-    if (latitude_ > parameters.max_lat)
-      latitude_ -= meridional_jump;
-    else if (latitude_ < parameters.min_lat)
-      latitude_ -= meridional_jump;
-    lat_memory_[year(now)] = latitude_;
-    cout << setprecision(10)  << "calculating preference movement, lat = " << latitude_ - meridional_jump << " long = " << longitude_ - zonal_jump << " gradient long direction = " << gradient[0] << " long jump = " << zonal_jump << " gradient lat direction = " << gradient[1] << " lat jump = " << meridional_jump << endl;
+}
 
+void Agent::meridional_jump(void) {
+  double velocity = environemnt_ptr_->get_gradient(latitude_, longitude_, year(now))[1];
+  boost::normal_distribution<> dist {velocity, parameters.standard_dev_for_preference};
+  double meridional_jump = dist(*engine_ptr_);
+  //cout << "jump = " << meridional_jump << endl;
+  latitude_ += meridional_jump;
+  if (latitude_ > parameters.max_lat)
+    latitude_ -= meridional_jump;
+  else if (latitude_ < parameters.min_lat)
+    latitude_ -= meridional_jump;
+  lat_memory_[year(now)] = latitude_;
+  cout << "calculating preference movement, lat = " << latitude_ - meridional_jump << " gradient lat direction = " << velocity << " lat jump = " << meridional_jump << endl;
+}
+
+void Agent::preference_movement(void) {
+  // Only apply preference movement in first year TODO think about equilibrium spatial distributions
+  if (now >= 1900) {
+    meridional_jump();
+    zonal_jump();
   }
-*/
 }
 /**
  * Move this fish

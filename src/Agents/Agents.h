@@ -1,13 +1,10 @@
 #pragma once
 
-#include "Requirements.h"
 #include "Dimensions.h"
 #include "Parameters.h"
 #include "Environment.h"
 #include "Random.h"
-#include "Agent.h"
-
-class Agent; // fwd declare
+#include "Agent.cpp"
 
 /**
  * The population/Partition of `Agents`
@@ -17,12 +14,11 @@ class Agent; // fwd declare
  * The variable, `scalar` is then used to scale other variables, like biomass, to population levels.
  */
 
-
 class Agents : public std::vector<Agent> {
   public:
     // constructor that sets intial vector of fishes = size.
-    Agents(int size = 0) :
-      std::vector<Agent>(size)
+    Agents(int size, Engine& engine) :
+      std::vector<Agent>(size, Agent(engine))
     {}
     ~Agents() {};
 

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Agent.cpp"
-
 #include "Agents.h"
 
 /**
@@ -57,7 +55,7 @@ void Agents::finalise(void) {
   pars << "fish\tintercept\tslope\tk\tL_inf\n";
   std::ofstream trajs("output/fishes/growth_trajs.tsv");
   trajs << "fish\ttime\tlength\tlength_new\n";
-  for (int index = 0; index < 100; index++) {
+/*  for (int index = 0; index < 100; index++) {
       Agent agent;
       agent.born(HG);
       pars << index << "\t"
@@ -73,7 +71,7 @@ void Agents::finalise(void) {
           agent.growth();
           trajs << agent.length_ << "\n";
       }
-  }
+  }*/
   cerr << "exit finalise fishes" << endl;
 }
 
@@ -86,8 +84,6 @@ void Agents::finalise(void) {
  * but is a separate method so that it can also be used in unit tests.
  */
 void Agents::seed(unsigned int number) {
-    clear();
-    resize(number);
     for (auto& agent : *this) {
       agent.seed();
     }

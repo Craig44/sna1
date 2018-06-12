@@ -16,8 +16,12 @@
  * Links together the sub-models e.g `Environment`, 'Agents` and `Harvest`
  */
 
-Model::Model() {
+Model::Model(Engine* engine) :
+  agents(parameters.fishes_seed_number, engine),
+  model_engine_ptr_(engine)
+{
   environemnt = new Environment;
+
 }
 
 Model::~Model() {
@@ -35,7 +39,7 @@ void Model::initialise(void) {
 
 void Model::finalise(void) {
   parameters.finalise();
-  //environemnt.finalise();
+  environemnt->finalise();
   agents.finalise();
   harvest.finalise();
   monitor.finalise();
@@ -49,6 +53,7 @@ void Model::finalise(void) {
 * the population of agent
  */
 void Model::update(void) {
+  cout << "enter update" << endl;
   auto y = year(now);
   bool burnin = (y < Years_min);
 
@@ -75,9 +80,8 @@ void Model::update(void) {
 // Create and insert each recruit into the population
   unsigned int slot = 0;
   for (auto region : regions) {
-    for (unsigned int index = 0; index < agents.recruitment_instances_(region);
-        index++) {
-      Agent recruit;
+    for (unsigned int index = 0; index < agents.recruitment_instances_(region); index++) {
+      Agent recruit(model_engine_ptr_);
       recruit.born(Region(region.index()));
 
       // Find a "slot" in population to insert this recruit
