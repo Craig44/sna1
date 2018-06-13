@@ -30,7 +30,7 @@ void Model::initialise(void) {
 void Model::finalise(void) {
   parameters.finalise();
   //environemnt->finalise();
-  agents.finalise();
+  //agents.finalise();
   harvest.finalise();
   monitor.finalise();
 }
@@ -72,7 +72,7 @@ void Model::update(void) {
 
     for (unsigned int index = 0; index < agents.recruitment_instances_(region); index++) {
       Agent recruit;
-      recruit.born(Region(region.index()), environemnt, model_engine_ptr_);
+      recruit.born(Region(region.index()), environemnt);
 
       // Find a "slot" in population to insert this recruit
       // An empty 'slot' is created when previous agent in the partition die.
@@ -110,7 +110,6 @@ void Model::update(void) {
         if (not burnin) {
           monitor.population(agent);
         }
-
       }
     }
   }
@@ -179,14 +178,14 @@ void Model::update(void) {
    * Harvesting and harvest related monitoring (e.g. CPUE, tag recoveries)
    ****************************************************************/
 
-// Update the current catches by region/method
-// from the catch history
+  // Update the current catches by region/method
+  // from the catch history
   harvest.catch_observed_update();
 
-// Reset the harvesting accounting
+  // Reset the harvesting accounting
   harvest.attempts_ = 0;
   harvest.catch_taken_ = 0;
-// Keep track of total catch taken and quit when it is >= observed
+  // Keep track of total catch taken and quit when it is >= observed
   double catch_taken = 0;
   double catch_observed = sum(harvest.catch_observed_);
 
@@ -207,14 +206,11 @@ void Model::update(void) {
         // Randomly choose a fishing method in the region the agent currently resides
         auto method = Method(methods.select(chance()).index());
         // If the catch for the method in the region is not yet caught...
-        if (harvest.catch_taken_(region, method)
-            < harvest.catch_observed_(region, method)) {
+        if (harvest.catch_taken_(region, method) < harvest.catch_observed_(region, method)) {
           // Is this agent caught by this method?
-          auto selectivity = harvest.selectivity_at_length_(method,
-              agent.length_bin());
+          auto selectivity = harvest.selectivity_at_length_(method, agent.length_bin());
           auto boldness =
-              (method == agent.get_method_last()) ?
-                  (1 - parameters.fishes_shyness(method)) : 1;
+              (method == agent.get_method_last()) ? (1 - parameters.fishes_shyness(method)) : 1;
           if (chance() < selectivity * boldness) {
             // An additional step of agent we keep only above mls
             if (agent.get_length() >= parameters.harvest_mls(method)) {
@@ -251,11 +247,8 @@ void Model::update(void) {
         }
         harvest.attempts_++;
         if (harvest.attempts_ > agents.size() * 100) {
-          cerr << y << endl << "Catch taken so far:\n" << harvest.catch_taken_
-              << endl << "Catch observed:\n" << harvest.catch_observed_
-              << endl;
-          throw runtime_error(
-              "Too many attempts to take catch. Something is probably wrong.");
+          cerr << y << endl << "Catch taken so far:\n" << harvest.catch_taken_ << endl << "Catch observed:\n" << harvest.catch_observed_ << endl;
+          throw runtime_error("Too many attempts to take catch. Something is probably wrong.");
         };
       }
     }
@@ -273,19 +266,16 @@ void Model::update(void) {
         // Randomly choose a fishing method in the region the agent currently resides
         auto method = Method(methods.select(chance()).index());
         // If the catch for the method in the region is not yet caught...
-        if (harvest.catch_taken_(region, method)
-            < harvest.catch_observed_(region, method)) {
+        if (harvest.catch_taken_(region, method) < harvest.catch_observed_(region, method)) {
           // Is this agent caught by this method?
-          auto selectivity = harvest.selectivity_at_age_(method,
-              agent.age_bin());
+          auto selectivity = harvest.selectivity_at_age_(method, agent.age_bin());
           if (parameters.debug)
             cerr << " method = " << method << "age_bin " << agent.age_bin()
                 << " " << selectivity << " agent actual age " << agent.age()
                 << endl;
 
           auto boldness =
-              (method == agent.get_method_last()) ?
-                  (1 - parameters.fishes_shyness(method)) : 1;
+              (method == agent.get_method_last()) ? (1 - parameters.fishes_shyness(method)) : 1;
           if (chance() <= selectivity * boldness) {
             // An additional step of agent we keep only above mls
             //if (agent.length >= parameters.harvest_mls(method)) {
@@ -321,22 +311,18 @@ void Model::update(void) {
         }
         harvest.attempts_++;
         if (harvest.attempts_ > agents.size() * 100) {
-          cerr << y << endl << "Catch taken so far:\n" << harvest.catch_taken_
-              << endl << "Catch observed:\n" << harvest.catch_observed_
-              << endl;
-          throw runtime_error(
-              "Too many attempts to take catch. Something is probably wrong.");
+          cerr << y << endl << "Catch taken so far:\n" << harvest.catch_taken_ << endl << "Catch observed:\n" << harvest.catch_observed_ << endl;
+          throw runtime_error("Too many attempts to take catch. Something is probably wrong.");
         };
       }
     }
   }
 
-// Update harvest.biomass_vulnerable for use in monioring
+  // Update harvest.biomass_vulnerable for use in monioring
   harvest.biomass_vulnerable_update(agents);
 
-// Update monitoring
+  // Update monitoring
   monitor.update(agents, harvest);
-
 }
 
 /**

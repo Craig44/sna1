@@ -7,10 +7,7 @@ using namespace std;
 int main(int argc, char** argv) {
     cout << "enter main" << endl;
     // This is to give every Agent it's own unique random number generator implemented for the preference movement functionality
-    boost::random::random_device device;
-    Engine engine(device);
-    Engine* engineptr = &engine;
-    Model model(engineptr);
+    Model model;
     model.initialise();
 
     try {

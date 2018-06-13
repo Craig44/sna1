@@ -20,13 +20,16 @@ class Environment {
      *  An accessor that returns the preference gradient to a zonal and meridional gradient relative to where they are, in a year
      */
     vector<double> get_gradient(const double & lat ,const double & lon,const  unsigned & year);
+    // So that an agent can query the environment what region they are in
+    Region get_region(const double & lat ,const double & lon) {return region_[get_lat_index(lat)][get_long_index(lon)];};
 
   private:
     // protected  objects.
     map<unsigned, vector<vector<double>>> preference_by_year_;
     map<unsigned, vector<vector<double>>> sst_;
     vector<vector<double>>                depths_; // does not vary by year
-
+    vector<vector<unsigned>>              region_index_; // does not vary by year
+    vector<vector<Region>>                 region_;
     map<unsigned, vector<vector<double>>> zonal_preference_by_year_;
     map<unsigned, vector<vector<double>>> meridional_preference_by_year_;
 
@@ -39,7 +42,6 @@ class Environment {
     unsigned                              n_lons_;
     vector<bool>                          directories_;
 
-
     /*
      * Some in house utility functions used within the class
      */
@@ -49,5 +51,7 @@ class Environment {
     double                                pref_function(double x,double& mu,double& low_tol, double& upp_tol);
     void                                  calculate_preference_layer(void);
     void                                  read_in_data(void);
-
+    void                                  convert_region_object(void);
+    template<typename type>
+    void                                  process_line(string current_line, vector<type>& final_line);
 };  // class Environment*/

@@ -23,33 +23,11 @@ void Agents::finalise(void) {
   cerr << "enter finalise Agents" << endl;
   boost::filesystem::create_directories("output/fishes");
 
-  std::ofstream movement_file("output/fishes/movement.tsv");
-
-  unsigned agent_number = 1;
-  for (auto& agent : *this) {
-    movement_file << "fish_" << agent_number << "\t";
-    for (auto lat_mem : agent.lat_memory_) {
-      if (lat_mem.second < 0)
-        movement_file << lat_mem.second << "\t";
-    }
-    movement_file << "\n";
-    movement_file << "fish_" << agent_number << "\t";
-    for (auto lon_mem : agent.lon_memory_) {
-      if (lon_mem.second > 0)
-        movement_file << lon_mem.second << "\t";
-    }
-
-    movement_file << "\n";
-    ++agent_number;
-  }
-
   // print end point of fish that are alive
-  std::ofstream final_locations_file("output/fishes/end_positions.tsv");
-  final_locations_file << "latitude longitude\n";
+  std::ofstream agent_attributes("output/fishes/attributes.tsv");
+  agent_attributes << "latitude longitude alive region length age\n";
   for (auto& agent : *this) {
-    if (agent.alive()) {
-      final_locations_file << agent.latitude_ << " " << agent.longitude_ << endl;
-    }
+    agent_attributes << agent.latitude_ << " " << agent.longitude_ << " " << agent.alive() << " " << agent.region_ << " " << agent.length_ << " " << agent.age() << endl;
   }
 
 
@@ -66,7 +44,7 @@ void Agents::finalise(void) {
   pars << "fish\tintercept\tslope\tk\tL_inf\n";
   std::ofstream trajs("output/fishes/growth_trajs.tsv");
   trajs << "fish\ttime\tlength\tlength_new\n";
-/*  for (int index = 0; index < 100; index++) {
+  for (int index = 0; index < 100; index++) {
       Agent agent;
       agent.born(HG);
       pars << index << "\t"
@@ -82,7 +60,7 @@ void Agents::finalise(void) {
           agent.growth();
           trajs << agent.length_ << "\n";
       }
-  }*/
+  }
   cerr << "exit agents fishes" << endl;
 }
 
@@ -98,7 +76,7 @@ void Agents::seed(unsigned int number) {
     clear();
     resize(number);
     for (auto& agent : *this) {
-      agent.seed(model_->get_environment_ptr(), engine_for_seeding_);
+      agent.seed(model_->get_environment_ptr());
     }
 }
 

@@ -32,7 +32,7 @@ void Environment::initialise(void) {
   cout << "finsihed calculating preference layer" << endl;
   calculate_gradient();
   cout << "finished calculating check for initial values -45 and 177" << endl;
-
+  convert_region_object();
 }
 
 void Environment::finalise(void) {
@@ -183,6 +183,25 @@ double Environment::pref_function(double x,double& mu,double& low_tol, double& u
   return exp(log(0.1) * pow(x - mu,2) / pow(upp_tol - mu,2));
 }
 
+template<typename type>
+void Environment::process_line(string current_line, vector<type>& final_line) {
+  boost::replace_all(current_line, "\t", " ");
+  boost::replace_all(current_line, ",", " ");
+  boost::replace_all(current_line, "  ", " ");
+
+  // Break up columns
+  vector<string> split_current_line;
+  boost::split(split_current_line, current_line, boost::is_any_of(" "));
+  type element;
+  for (auto col : split_current_line) {
+    if (!To<type>(col, element)) {
+      cerr << "failed to convert " << col << " to double, either the code is shit or you have character in the lats.txt file" << endl;
+      exit (EXIT_FAILURE);
+    }
+    final_line.push_back(element);
+  }
+}
+
 /*
  * This method is responsible for reading in preference data.
  * This assumes there is two directories 'sst' and 'base'
@@ -237,27 +256,12 @@ void Environment::read_in_data(void) {
       string name = iter->path().filename().string();
       cerr << "name = " << name << " directory " << iter->path().string() << endl;
       vector<string> file_name_parts;
-
       // make exceptions for certain files, this could be a way allowing for multiple components such as having 0 areas such as islands that individuals cannot head to.
       if (name == "lats.txt") {
         lat_file_found = true;
         boost::filesystem::ifstream file{iter->path()};
-        while(getline(file, current_line)){
-          boost::replace_all(current_line, "\t", " ");
-          boost::replace_all(current_line, ",", " ");
-          boost::replace_all(current_line, "  ", " ");
-
-          // Break up columns
-          boost::split(current_line_parts, current_line, boost::is_any_of(" "));
-          double element;
-          for (auto col : current_line_parts) {
-            if (!To<double>(col, element)) {
-              cerr << "failed to convert " << col << " to double, either the code is shit or you have character in the lats.txt file" << endl;
-              exit (EXIT_FAILURE);
-            }
-            lats_.push_back(element);
-          }
-        }
+        while(getline(file, current_line))
+          process_line(current_line, lats_);
         n_lats_ = lats_.size() - 1; // These are upper and lower bounds
         continue;
       }
@@ -266,20 +270,7 @@ void Environment::read_in_data(void) {
         long_file_found = true;
         boost::filesystem::ifstream file{iter->path()};
         while(getline(file, current_line)){
-          boost::replace_all(current_line, "\t", " ");
-          boost::replace_all(current_line, ",", " ");
-          boost::replace_all(current_line, "  ", " ");
-
-          // Break up columns
-          boost::split(current_line_parts, current_line, boost::is_any_of(" "));
-          double element;
-          for (auto col : current_line_parts) {
-            if (!To<double>(col, element)) {
-              cerr << "failed to convert " << col << " to double, either the code is shit or you have character in the lons.txt file" << endl;
-              exit (EXIT_FAILURE);
-            }
-            lons_.push_back(element);
-          }
+          process_line(current_line, lons_);
         }
         n_lons_ = lons_.size() - 1; // These are upper and lower bounds
         continue;
@@ -289,21 +280,18 @@ void Environment::read_in_data(void) {
         boost::filesystem::ifstream file{iter->path()};
         while(getline(file, current_line)){
           vector<double> temp_depths;
-          boost::replace_all(current_line, "\t", " ");
-          boost::replace_all(current_line, ",", " ");
-          boost::replace_all(current_line, "  ", " ");
-
-          // Break up columns
-          boost::split(current_line_parts, current_line, boost::is_any_of(" "));
-          double element;
-          for (auto col : current_line_parts) {
-            if (!To<double>(col, element)) {
-              cout << "failed to convert " << col << " to double, either the code is shit or you have character in the depths.txt file" << endl;
-              exit (EXIT_FAILURE);
-            }
-            temp_depths.push_back(pref_function(element, parameters.depth_optimum, parameters.depth_lower, parameters.depth_upper));
-          }
+          process_line(current_line, temp_depths);
           depths_.push_back(temp_depths);
+        }
+        continue;
+      }
+      if (name == "region.txt") {
+        cout << "found region.txt" << endl;
+        boost::filesystem::ifstream file{iter->path()};
+        while(getline(file, current_line)) {
+          vector<unsigned> temp_regions;
+          process_line(current_line, temp_regions);
+          region_index_.push_back(temp_regions);
         }
         continue;
       }
@@ -339,32 +327,13 @@ void Environment::read_in_data(void) {
       unsigned lat_iter = 0;
       while(getline(file, current_line)){
         vector<double> row_vector;
-        // Replace seperators
-        boost::replace_all(current_line, "\t", " ");
-        boost::replace_all(current_line, ",", " ");
-        boost::replace_all(current_line, "  ", " ");
-
-        // Break up columns
-        boost::split(current_line_parts, current_line, boost::is_any_of(" "));
-
-        if (current_line_parts.size() != n_lons_) {
-          cerr << "found " << current_line_parts.size() << " columns in file '" << name << "', when there should be " << n_lons_ << endl;
-          exit (EXIT_FAILURE);
-        }
-        // iterate over and store
-        unsigned long_iter = 0;
-        double element;
-        for (auto col : current_line_parts) {
-          if (!To<double>(col, element)) {
-            cerr << "failed to convert " << col << " to double, either the code is shit or you have character at row '"<< lat_iter + 1 << "' and column '" << long_iter + 1 << "'" << endl;
-            exit (EXIT_FAILURE);
-          }
-          row_vector.push_back(pref_function(element, optimum_preference, lower_preference, upper_preference));
-
-          ++long_iter;
-        }
+        process_line(current_line, row_vector);
         if (dir == 1) {
           sst_[temp_year].push_back(row_vector);
+        }
+        if (row_vector.size() != n_lons_) {
+          cerr << "found " << row_vector.size() << " columns in file '" << name << "', when there should be " << n_lons_ <<  " please fix this at row '" << lat_iter + 1 << "'" << endl;
+          exit (EXIT_FAILURE);
         }
         ++lat_iter;
       } // read line
@@ -405,7 +374,6 @@ void Environment::read_in_data(void) {
  * This method is responsible for calculating the final preference which currently
  * is just made up of depth and sst.
 */
-
 void Environment::calculate_preference_layer(void) {
   for (auto year : years_) {
     // Allocate memory
@@ -423,3 +391,16 @@ void Environment::calculate_preference_layer(void) {
     }
   }
 }
+
+// Converts the region_index_ matrix -> matrix of stencilia Region dimensions.
+void Environment::convert_region_object(void) {
+  region_.resize(n_lats_);
+  for(unsigned i = 0; i < region_index_.size(); ++i) {
+    region_[i].resize(n_lons_);
+    for(unsigned j = 0; j < region_index_[i].size(); ++j) {
+      region_[i][j] = Region(region_index_[i][j]);
+    }
+  }
+}
+
+

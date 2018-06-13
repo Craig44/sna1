@@ -66,9 +66,8 @@ double Agent::weight(void) const {
  *  - seed fish are distributed evenly across areas
  *  - maturity is approximated by maturation schedule
  */
-void Agent::seed(Environment* environment, Engine* engine) {
+void Agent::seed(Environment* environment) {
     environemnt_ptr_ = environment;
-    engine_ptr_ = engine;
     home_ = Region(int(parameters.fishes_seed_region_dist.random()));
     region_ = home_;
 
@@ -125,9 +124,8 @@ void Agent::seed() {
  * Initialises attributes as though this fish is close
  * to age 0
  */
-void Agent::born(Region region, Environment* environment, Engine* engine) {
+void Agent::born(Region region, Environment* environment) {
     environemnt_ptr_ = environment;
-    engine_ptr_ = engine;
 
     latitude_ = -41.234;
     longitude_ = 187.232;
@@ -282,55 +280,33 @@ void Agent::maturation(void) {
     }
 }
 
-
-
-/**
- * apply the longiutidinal jump
- */
-void Agent::zonal_jump(void) {
-    //cout << "about to use preference movement to move fish lat = " << latitude << " longitude " << lon << " year " << year(now) << " or year = "<< now << endl;
-    // pull gradients zonal and meridinal
-    double velocity = environemnt_ptr_->get_gradient(latitude_, longitude_, year(now))[0];
-    boost::normal_distribution<> dist {velocity, parameters.standard_dev_for_preference};
-
-    double zonal_jump = dist(*engine_ptr_);
-
-    longitude_ += zonal_jump;
-    if (longitude_ > parameters.max_lon)
-      longitude_ -= zonal_jump;
-    else if (longitude_ < parameters.min_lon)
-      longitude_ -= zonal_jump;
-    lon_memory_[year(now)] = longitude_;
-    //cout << setprecision(10)  << "calculating preference movement,  long = " << longitude_ - zonal_jump << " gradient long direction = " << velocity << " long jump = " << zonal_jump << endl;
-
-}
-
-
-/*
- * Apply lat jump
-*/
-void Agent::meridional_jump(void) {
-  double velocity = environemnt_ptr_->get_gradient(latitude_, longitude_, year(now))[1];
-  boost::normal_distribution<> dist {velocity, parameters.standard_dev_for_preference};
-  double meridional_jump = dist(*engine_ptr_);
-  //cout << "jump = " << meridional_jump << endl;
-  latitude_ += meridional_jump;
-  if (latitude_ > parameters.max_lat)
-    latitude_ -= meridional_jump;
-  else if (latitude_ < parameters.min_lat)
-    latitude_ -= meridional_jump;
-  lat_memory_[year(now)] = latitude_;
-  //cout << "calculating preference movement, lat = " << latitude_ - meridional_jump << " gradient lat direction = " << velocity << " lat jump = " << meridional_jump << endl;
-}
-
 /*
  * Apply the actual movement
 */
 void Agent::preference_movement(void) {
   // Only apply preference movement in first year TODO think about equilibrium spatial distributions
   if (now >= 1900) {
-    meridional_jump();
-    zonal_jump();
+    vector<double> velocity = environemnt_ptr_->get_gradient(latitude_, longitude_, year(now));
+    double zonal_jump = velocity[0] + standard_normal_rand() * parameters.standard_dev_for_preference;
+    longitude_ += zonal_jump;
+
+    // Check we are still in the spatial domain
+    if (longitude_ > parameters.max_lon)
+      longitude_ -= zonal_jump;
+    else if (longitude_ < parameters.min_lon)
+      longitude_ -= zonal_jump;
+    //cout << setprecision(10)  << "calculating preference movement,  long = " << longitude_ - zonal_jump << " gradient long direction = " << velocity << " long jump = " << zonal_jump << endl;
+
+    double meridional_jump = velocity[1] + standard_normal_rand() * parameters.standard_dev_for_preference;
+    //cout << "jump = " << meridional_jump << endl;
+    latitude_ += meridional_jump;
+    // Check we are still in the spatial domain
+    if (latitude_ > parameters.max_lat)
+      latitude_ -= meridional_jump;
+    else if (latitude_ < parameters.min_lat)
+      latitude_ -= meridional_jump;
+
+    region_ = environemnt_ptr_->get_region(latitude_, longitude_);
   }
 }
 /**

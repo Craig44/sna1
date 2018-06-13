@@ -21,9 +21,8 @@ class Model {
     Harvest harvest;
     Monitor monitor;
 
-    Model(Engine* engine) :
-      agents(defualt_value_, engine, this),
-      model_engine_ptr_(engine)
+    Model() :
+      agents(defualt_value_, this)
     {
       environemnt = new Environment;
     }
@@ -40,7 +39,6 @@ class Model {
     void run(Time start, Time finish, std::function<void()>* callback = 0,int initial = 0);
     Environment*  get_environment_ptr(void) const {return environemnt;}
   private:
-    Engine* model_engine_ptr_ = nullptr;
     int defualt_value_ = 0;
 };
 // end class Model

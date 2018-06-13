@@ -17,10 +17,9 @@ class Model;
 class Agents : public std::vector<Agent> {
   public:
     // constructor that sets intial vector of fishes = size.
-    Agents(int size, Engine* engine, Model* model) :
+    Agents(int size, Model* model) :
       std::vector<Agent>(size, Agent()),
-      model_(model),
-      engine_for_seeding_(engine)
+      model_(model)
     {}
 
     void                    initialise(void);
@@ -53,7 +52,6 @@ class Agents : public std::vector<Agent> {
     double                  biomass_ = 1.0;         //Current total biomass (t)
     Array<unsigned int,Regions,Sexes,Ages,Lengths> counts_;
     Model*                  model_ = nullptr;
-    Engine*                 engine_for_seeding_= nullptr;
 };  // end class Agents
 
 

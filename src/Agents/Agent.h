@@ -4,7 +4,8 @@
 
 class Environemnt;
 /**
- * A fish
+ * An agents attributes, this class is also responsible for processes that control the fate of individual whether it dies, where it moves etc
+ * Most attributes are public because the agents class actually inherits the vector class so to give it access to this class everything is public
  */
 class Agent {
   public:
@@ -43,9 +44,9 @@ class Agent {
      * Processes
      ************************************************************/
     void seed(); // overload for reporting fish attributes but not run time evaluations
-    void seed(Environment* environment, Engine* engine);
+    void seed(Environment* environment);
     void born(Region region); // overload for reporting fish attributes but not run time evaluations
-    void born(Region region, Environment* environment, Engine* engine);
+    void born(Region region, Environment* environment);
     void growth_init(int age);
     void dies(void);
     bool survival(void);
@@ -63,8 +64,6 @@ class Agent {
     Sex sex_;                         // Sex of this fish
     float latitude_;                    // latitude of this fish
     float longitude_;                   // longitude of this fish
-    map<unsigned, float> lat_memory_; // TODO removed when satisfied the preference movement is doing what it is suppose to.
-    map<unsigned, float> lon_memory_; // TODO removed when satisfied the preference movement is doing what it is suppose to.
     float growth_intercept_; // Intercept of the length increment to length relaion
     float growth_slope_;      // Slope of the length increment to length relaion
     float length_;                      // Current length (cm) of this fish
@@ -74,10 +73,7 @@ class Agent {
     short method_last_; // The method that this fish was last caught by (and released,because undersized or tag-release)
 
   protected:
-    Engine* engine_ptr_ = nullptr;                // boost engine for random number generation
     Environment* environemnt_ptr_ = nullptr;                // Give each fish a pointer to the environemnt
-    void zonal_jump(void);
-    void meridional_jump(void);
 
 };
 // end class Agent
