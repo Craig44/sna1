@@ -97,10 +97,19 @@ LIB_DIRS := -Lrequires/boost/stage/lib
 LIBS := -lboost_system-mgw51-mt-1_62 -lboost_filesystem-mgw51-mt-1_62 -lboost_random-mgw51-mt-1_62
 
 
-# Find all .hpp and .cpp files (to save time don't recurse into subdirectories)
-SRC := $(shell find_linux src -maxdepth 3 -mindepth 1 -name "*.h")
-SRC += $(shell find_linux src -maxdepth 3 -mindepth 2 -name "*.cpp") # No source files in upper layer apart from the main();
-main := $(shell find_linux src -maxdepth 1 -name "*.cpp")
+ifeq ($(OS), linux)
+	# Find all .hpp and .cpp files (to save time don't recurse into subdirectories)
+	SRC := $(shell find src -maxdepth 3 -mindepth 1 -name "*.h")
+	SRC += $(shell find src -maxdepth 3 -mindepth 2 -name "*.cpp") # No source files in upper layer apart from the main();
+	main := $(shell find src -maxdepth 1 -name "*.cpp")
+	
+endif
+ifeq ($(OS), win)
+	# Find all .hpp and .cpp files (to save time don't recurse into subdirectories)
+	SRC := $(shell find_linux src -maxdepth 3 -mindepth 1 -name "*.h")
+	SRC += $(shell find_linux src -maxdepth 3 -mindepth 2 -name "*.cpp") # No source files in upper layer apart from the main();
+	main := $(shell find_linux src -maxdepth 1 -name "*.cpp")
+endif
 
 $(info source files are $(SRC))
 $(info includes are $(INC_DIRS))
