@@ -6,6 +6,7 @@ clean:
 print-%  : ; @echo $* = $($*)
 #############################################################
 # Operating system
+$(warning If you have issues building on windows see 'dependencies on windows.txt' in the scripts folder for help)
 
 UNAME := $(shell uname )
 ifeq ($(UNAME), Linux)
@@ -14,6 +15,8 @@ endif
 ifeq ($(UNAME), WindowsNT)
 	OS := win
 endif
+
+
 
 #############################################################
 # Requirements
@@ -49,9 +52,8 @@ ifeq ($(OS), win)
 requires/boost/lib: requires/boost
 	##cmd /C bootstrap.bat gcc --with-libraries=filesystem,test
 	cd $< ; cmd /C bootstrap.bat gcc $(BOOST_BOOTSTRAP_FLAGS)
-	## The file 'project-config.jam' may need a more comprehensive change, but for now this is all I did
+	$(warning The file 'project-config.jam' may need a more comprehensive change, but for now this is all I did, see the file building dependencies on windows.txt in the scripts folder)
 	sed -i "s/msvc/gcc/g" $</project-config.jam
-	##@echo Running b2.exe	
 	cd $< ; ./b2 $(BOOST_B2_FLAGS)
 	./b2 -d0 --prefix=. link=static install cxxflags=-fPIC runtime-link=static stage
 
@@ -100,10 +102,10 @@ SRC := $(shell find_linux src -maxdepth 3 -mindepth 1 -name "*.h")
 SRC += $(shell find_linux src -maxdepth 3 -mindepth 2 -name "*.cpp") # No source files in upper layer apart from the main();
 main := $(shell find_linux src -maxdepth 1 -name "*.cpp")
 
-$(warning source files are $(SRC))
-$(warning includes are $(INC_DIRS))
-$(warning main $(main))
-$(warning requires = requires)
+$(info source files are $(SRC))
+$(info includes are $(INC_DIRS))
+$(info main $(main))
+$(info requires = requires)
 
 # Executable for normal use
 sna1.exe: $(SRC)
