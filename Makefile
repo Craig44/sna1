@@ -90,25 +90,26 @@ $(info entering executable)
 # Define compile options and required libraries
 CXX_FLAGS := -std=c++11 -Wall -Wno-unused-function -Wno-unused-local-typedefs -Wno-unused-variable -pthread
 INC_DIRS := -I. -Irequires/boost -Irequires/stencila 
-sub_dir := $(shell find_linux src -type d)
-INC_DIRS += $(addprefix  -I,  $(sub_dir))
-
-LIB_DIRS := -Lrequires/boost/stage/lib
-LIBS := -lboost_system-mgw51-mt-1_62 -lboost_filesystem-mgw51-mt-1_62 -lboost_random-mgw51-mt-1_62
-
 
 ifeq ($(OS), linux)
 	# Find all .hpp and .cpp files (to save time don't recurse into subdirectories)
 	SRC := $(shell find src -maxdepth 3 -mindepth 1 -name "*.h")
 	SRC += $(shell find src -maxdepth 3 -mindepth 2 -name "*.cpp") # No source files in upper layer apart from the main();
 	main := $(shell find src -maxdepth 1 -name "*.cpp")
-	
+	sub_dir := $(shell find src -type d)
+	INC_DIRS += $(addprefix  -I,  $(sub_dir))
+	LIB_DIRS := -Lrequires/boost/lib
+	LIBS := -lboost_system -lboost_filesystem
 endif
 ifeq ($(OS), win)
 	# Find all .hpp and .cpp files (to save time don't recurse into subdirectories)
 	SRC := $(shell find_linux src -maxdepth 3 -mindepth 1 -name "*.h")
 	SRC += $(shell find_linux src -maxdepth 3 -mindepth 2 -name "*.cpp") # No source files in upper layer apart from the main();
 	main := $(shell find_linux src -maxdepth 1 -name "*.cpp")
+	sub_dir := $(shell find_linux src -type d)
+	INC_DIRS += $(addprefix  -I,  $(sub_dir))
+	LIB_DIRS := -Lrequires/boost/stage/lib
+	LIBS := -lboost_system-mgw51-mt-1_62 -lboost_filesystem-mgw51-mt-1_62 
 endif
 
 $(info source files are $(SRC))
