@@ -1,8 +1,8 @@
 #pragma once
 
-//#include "Tagging.h"
 #include "Agents.h"
 #include "Harvest.h"
+#include "Tagging.h"
 
 
 class Monitor {
@@ -16,18 +16,19 @@ class Monitor {
     void update_initial_partition(const Agents& agents);
     void update(const Agents& agents, const Harvest& harvest);
 
-    MonitoringComponents                        components;              // An optimization to store the current year's monitoring components
-    Array<int, Years, Regions>                  population_numbers;       // Population numbers by year and region
-    Array<double, Regions, Lengths>             population_lengths_sample; //Population length distribution by region for current year
-    Array<double, Years, Regions>               biomass_spawners;
-    Array<unsigned int, Years, Regions>         recruits;
-    Array<unsigned int, Ages, Regions>          initial_numbers_at_age;
-    Array<double, Years, Regions, Methods>      catches;
-    Array<double, Regions, Methods>             cpue;
-    Array<double, Years, Regions, Methods>      cpues;
-    Array<double, Regions, Methods, Ages>       age_sample;
-    Array<double, Years, Regions, Methods, Ages> age_samples;
-    Array<double, Years, Regions, Ages>         numbers_at_age;
-    Array<double, Regions, Methods, Lengths>    length_sample;
-    Array<double, Years, Regions, Methods, Lengths> length_samples;
+    Tagging tagging_;
+    MonitoringComponents                        components_;              // An optimization to store the current year's monitoring components
+    Array<int, Years, Regions>                  population_numbers_;       // Population numbers by year and region
+    Array<double, Regions, Lengths>             population_lengths_sample_; //Population length distribution by region for current year
+    Array<double, Years, Regions>               biomass_spawners_;
+    Array<unsigned int, Years, Regions>         recruits_;
+    Array<unsigned int, Ages, Regions>          initial_numbers_at_age_;
+    Array<double, Years, Regions, Methods>      catches_;
+    Array<double, Regions, Methods>             cpue_;
+    Array<double, Years, Regions, Methods>      cpues_;
+    Array<double, Regions, Methods, Ages>       age_sample_;
+    Array<double, Years, Regions, Methods, Ages> age_samples_;
+    Array<double, Years, Regions, Ages>         numbers_at_age_;
+    Array<double, Regions, Methods, Lengths>    length_sample_;
+    Array<double, Years, Regions, Methods, Lengths> length_samples_;
 };  // class Monitor

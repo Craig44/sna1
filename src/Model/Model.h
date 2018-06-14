@@ -16,20 +16,20 @@
  */
 class Model {
   public:
-    Environment* environemnt = nullptr; // DO NOT call this environ, that is a macro in stdlib.h on windows which caused me many hours of suffering trying to find.
-    Agents agents;
-    Harvest harvest;
-    Monitor monitor;
+    Environment* environemnt_ = nullptr; // DO NOT call this environ, that is a macro in stdlib.h on windows which caused me many hours of suffering trying to find.
+    Agents agents_;
+    Harvest harvest_;
+    Monitor monitor_;
 
     Model() :
-      agents(defualt_value_, this)
+      agents_(defualt_value_, this)
     {
-      environemnt = new Environment;
+      environemnt_ = new Environment;
     }
 
     ~Model() {
-      delete environemnt;
-      environemnt = nullptr;
+      delete environemnt_;
+      environemnt_ = nullptr;
     }
 
     void initialise(void);
@@ -37,7 +37,7 @@ class Model {
     void update(void);
     void pristine(Time time, function<void()>* callback = 0, bool called_after_seed = false);
     void run(Time start, Time finish, std::function<void()>* callback = 0,int initial = 0);
-    Environment*  get_environment_ptr(void) const {return environemnt;}
+    Environment*  get_environment_ptr(void) const {return environemnt_;}
   private:
     int defualt_value_ = 0;
 };

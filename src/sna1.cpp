@@ -21,9 +21,9 @@ int main(int argc, char** argv) {
             function<void()> callback([&](){
                 cout
                     << now << "\t"
-                    << model.agents.number(false)/1e6 << "\t" << model.agents.size()/1e6  << "\t"
-                    << sum(model.agents.biomass_spawners_)/sum(parameters.fishes_b0) << "\t"
-                    << sum(model.harvest.catch_taken_)/sum(model.harvest.biomass_vulnerable_) << endl;
+                    << model.agents_.number(false)/1e6 << "\t" << model.agents_.size()/1e6  << "\t"
+                    << sum(model.agents_.biomass_spawners_)/sum(parameters.fishes_b0) << "\t"
+                    << sum(model.harvest_.catch_taken_)/sum(model.harvest_.biomass_vulnerable_) << endl;
             });
             model.run(1899, 2018, &callback);
         } else {

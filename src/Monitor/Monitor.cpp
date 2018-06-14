@@ -1,12 +1,12 @@
 #pragma once
 
-//#include "Tagging.h"
+#include "Tagging.cpp"
 #include "Monitor.h"
 
 
 
 void Monitor::initialise(void) {
-  population_numbers = 0;
+  population_numbers_ = 0;
 }
 
 /**
@@ -14,11 +14,11 @@ void Monitor::initialise(void) {
  */
 void Monitor::reset() {
   auto y = year(now);
-  components = parameters.monitoring_programme(y);
-  population_lengths_sample = 0;
-  cpue = 0;
-  age_sample = 0;
-  length_sample = 0;
+  components_ = parameters.monitoring_programme(y);
+  population_lengths_sample_ = 0;
+  cpue_ = 0;
+  age_sample_ = 0;
+  length_sample_ = 0;
 }
 
 /**
@@ -33,19 +33,18 @@ void Monitor::reset() {
 void Monitor::population(const Agent& agent) {
   auto y = year(now);
   // Add fish to numbers by Year and Region
-  population_numbers(y, agent.get_region())++;
+  population_numbers_(y, agent.get_region())++;
   // Add fish to numbers by Region and Length for current year
-  population_lengths_sample
-  (agent.get_region(), agent.length_bin())++;
+  population_lengths_sample_(agent.get_region(), agent.length_bin())++;
   // Tagging specific population monitoring
   //tagging.population(fish);
   }
 
 void Monitor::catch_sample(Region region, Method method, const Agent& agent) {
-  if (components.A)
-    age_sample(region, method, agent.age_bin())++;if
-(  components.L)
-  length_sample(region, method, agent.length_bin())++;
+  if (components_.A)
+    age_sample_(region, method, agent.age_bin())++;if
+(  components_.L)
+  length_sample_(region, method, agent.length_bin())++;
 }
 
 /**
@@ -55,7 +54,7 @@ void Monitor::catch_sample(Region region, Method method, const Agent& agent) {
 void Monitor::update_initial_partition(const Agents& agents) {
   for (auto agent : agents) {
     if (agent.alive()) {
-      initial_numbers_at_age(agent.age_bin(), agent.get_region())++;}
+      initial_numbers_at_age_(agent.age_bin(), agent.get_region())++;}
     }
   }
   /**
@@ -65,53 +64,53 @@ void Monitor::update(const Agents& agents, const Harvest& harvest) {
   auto y = year(now);
   for (Agent agent : agents) {
     if (agent.alive())
-      numbers_at_age(y, agent.get_region(), agent.age_bin())++;}
+      numbers_at_age_(y, agent.get_region(), agent.age_bin())++;}
 
     // Record spawning biomass
   for (auto region : regions) {
-    biomass_spawners(y, region) = agents.biomass_spawners_(region);
+    biomass_spawners_(y, region) = agents.biomass_spawners_(region);
   }
 
   // Record number of recruits
   for (auto region : regions) {
-    recruits(y, region) = agents.recruitment_instances_(region);
+    recruits_(y, region) = agents.recruitment_instances_(region);
   }
 
   // Record catches
   for (auto region : regions) {
     for (auto method : methods) {
-      catches(y, region, method) = harvest.catch_taken_(region, method);
+      catches_(y, region, method) = harvest.catch_taken_(region, method);
     }
   }
 
   // Calculate current CPUE by region and method and store it
-  if (components.C) {
+  if (components_.C) {
     for (auto region : regions) {
       for (auto method : methods) {
-        cpue(region, method) = harvest.biomass_vulnerable_(region, method);
-        cpues(y, region, method) = cpue(region, method);
+        cpue_(region, method) = harvest.biomass_vulnerable_(region, method);
+        cpues_(y, region, method) = cpue_(region, method);
       }
     }
   }
 
   // Store current age sample
-  if (components.A) {
+  if (components_.A) {
     for (auto region : regions) {
       for (auto method : methods) {
         for (auto age : ages) {
 
-          age_samples(y, region, method, age) = age_sample(region, method, age);
+          age_samples_(y, region, method, age) = age_sample_(region, method, age);
         }
       }
     }
   }
 
   // Store current length sample
-  if (components.L) {
+  if (components_.L) {
     for (auto region : regions) {
       for (auto method : methods) {
         for (auto length : lengths)
-          length_samples(y, region, method, length) = length_sample(region,
+          length_samples_(y, region, method, length) = length_sample_(region,
               method, length);
       }
     }
@@ -123,17 +122,15 @@ void Monitor::finalise(std::string directory) {
 
   //tagging.finalise();
 
-  population_numbers.write(directory + "/population_numbers.tsv");
+  population_numbers_.write(directory + "/population_numbers.tsv");
 
-  cpues.write(directory + "/cpues.tsv");
-  age_samples.write(directory + "/age_samples.tsv");
-  length_samples.write(directory + "/length_samples.tsv");
+  cpues_.write(directory + "/cpues.tsv");
+  age_samples_.write(directory + "/age_samples.tsv");
+  length_samples_.write(directory + "/length_samples.tsv");
 
-  parameters.monitoring_programme.write(directory + "/programme.tsv", { "cpue",
-      "lengths", "ages" },
-      [](std::ostream& stream, const MonitoringComponents& components) {
-        stream << components.C << "\t" << components.L << "\t" << components.A;
-      });
+  parameters.monitoring_programme.write(directory + "/programme.tsv", { "cpue","lengths", "ages" }, [](std::ostream& stream, const MonitoringComponents& components) {
+    stream << components.C << "\t" << components.L << "\t" << components.A;
+  });
 
   // Files for CASAL
   auto casal_directory = directory + "/casal";
@@ -185,7 +182,7 @@ void Monitor::finalise(std::string directory) {
   for (auto region : regions) {
     for (auto age : ages)
       initial_numbers_at_age_file << age.index() << "\t" << region << "\t"
-          << initial_numbers_at_age(age.index(), region) << "\n";
+          << initial_numbers_at_age_(age.index(), region) << "\n";
   }
 
   // Year Specific quantities
@@ -195,24 +192,24 @@ void Monitor::finalise(std::string directory) {
     for (auto region : regions) {
 
       biomass_file << year << "\t" << region_code(region) << "\t"
-          << biomass_spawners(year, region) << "\n";
+          << biomass_spawners_(year, region) << "\n";
 
       recruit_file << year << "\t" << region_code(region) << "\t"
-          << recruits(year, region) << "\n";
+          << recruits_(year, region) << "\n";
 
       numbers_at_age_file << year << "\t" << region_code(region) << "\t";
       for (auto age : ages)
-        numbers_at_age_file << numbers_at_age(year, region, age) << "\t";
+        numbers_at_age_file << numbers_at_age_(year, region, age) << "\t";
       numbers_at_age_file << "\n";
 
       for (auto method : methods) {
         catch_file << year << "\t" << region_code(region) << "\t"
-            << method_code(method) << "\t" << catches(year, region, method)
+            << method_code(method) << "\t" << catches_(year, region, method)
             << "\n";
 
         if (components.C) {
           cpue_file << year << "\t" << region_code(region) << "\t"
-              << method_code(method) << "\t" << cpues(year, region, method)
+              << method_code(method) << "\t" << cpues_(year, region, method)
               << "\n";
         }
 
@@ -220,7 +217,7 @@ void Monitor::finalise(std::string directory) {
           age_file << year << "\t" << region_code(region) << "\t"
               << method_code(method) << "\t";
           for (auto age : ages)
-            age_file << age_samples(year, region, method, age) << "\t";
+            age_file << age_samples_(year, region, method, age) << "\t";
           age_file << "\n";
         }
 
@@ -228,7 +225,7 @@ void Monitor::finalise(std::string directory) {
           length_file << year << "\t" << region_code(region) << "\t"
               << method_code(method) << "\t";
           for (auto length : lengths)
-            length_file << length_samples(year, region, method, length) << "\t";
+            length_file << length_samples_(year, region, method, length) << "\t";
           length_file << "\n";
         }
       }
@@ -258,13 +255,13 @@ void Monitor::finalise(std::string directory) {
     Mean growth_intercept_mean;
     StandardDeviation growth_intercept_sd;
     Mean growth_slope_mean;
-    /*            for (int index = 0; index < 1000; index++) {
+    for (int index = 0; index < 100; index++) {
      Agent agent;
      agent.born(EN);
-     growth_intercept_mean.append(agent.growth_intercept);
-     growth_intercept_sd.append(agent.growth_intercept);
-     growth_slope_mean.append(agent.growth_slope);
-     }*/
+     growth_intercept_mean.append(agent.growth_intercept_);
+     growth_intercept_sd.append(agent.growth_intercept_);
+     growth_slope_mean.append(agent.growth_slope_);
+   }
     growth_20 = growth_intercept_mean + 20 * growth_slope_mean;
     growth_50 = growth_intercept_mean + 50 * growth_slope_mean;
     growth_cv = growth_intercept_sd / growth_intercept_mean;
