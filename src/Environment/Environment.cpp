@@ -385,7 +385,7 @@ void Environment::calculate_preference_layer(void) {
       zonal_preference_by_year_[year][i].resize(n_lons_);
       meridional_preference_by_year_[year][i].resize(n_lons_);
       for (unsigned j = 0; j < n_lons_; ++j) {
-        preference_by_year_[year][i][j] = depths_[i][j];// pow(sst_[year][i][j] * depths_[i][j], 0.5); // 0.5 = 1/n where n = 2 TODO add back in
+        preference_by_year_[year][i][j] = pow(sst_[year][i][j] * depths_[i][j], 0.5); // 0.5 = 1/n where n = 2 TODO add back in
         //cout << "i = " << i + 1 << " j = " << j + 1 << " preference = " << preference_by_year_[year][i][j] << endl;
       }
     }
