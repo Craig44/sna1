@@ -45,15 +45,12 @@ class Parameters : public Structure<Parameters> {
      * during development. Should be increased for final runs.
      */
     unsigned int fishes_seed_number = 1e6;
-
-    // A debug variable to help me understand this program
-    bool debug = false;
-
     /**
      * Input variable which defines whether selectivity is age based or length based
      */
-    bool length_based_selectivity = false;
+    bool length_based_selectivity = true;
 
+    bool preference_movement = false;
     /**
      * Input variable which defines whether selectivity is age based or length based
      */
@@ -323,14 +320,13 @@ class Parameters : public Structure<Parameters> {
         for (auto& item : monitoring_programme)
           item.update();
 
-        if (debug) {
-            cerr << "K mean: " << fishes_k_mean << endl;
-            cerr << "K sd: " << fishes_k_sd << endl;
-            cerr << "L_inf: " << fishes_linf_mean << endl;
+#ifdef DEBUG
+        cerr << "K mean: " << fishes_k_mean << endl;
+        cerr << "K sd: " << fishes_k_sd << endl;
+        cerr << "L_inf: " << fishes_linf_mean << endl;
+#endif
 
-        }
-
-        // TODO if
+        // TODO if annual cycle changes to seasonal change
         standard_dev_for_preference = sqrt(2*diffusion_parameter*1);
     }
 
@@ -354,8 +350,8 @@ class Parameters : public Structure<Parameters> {
     void reflect(Mirror& mirror){
         mirror
             .data(fishes_seed_number, "fishes_seed_number")
-            .data(debug, "debug")
             .data(length_based_selectivity, "length_based_selectivity")
+            .data(preference_movement, "preference_movement")
             .data(diffusion_parameter, "diffusion_parameter")
 
             .data(sst_optimum, "sst_optimum")

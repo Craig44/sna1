@@ -46,14 +46,12 @@ void Harvest::initialise(void) {
             selectivity = 1.0 / (1.0 + pow(19.0, (mode - d_age) / steep1));
           }
         }
-
         selectivity_at_age_(method, age) = selectivity;
-
-        if (parameters.debug) {
-          cerr << "Method = " << method << " checky d_age = " << d_age
-              << " age = " << age_bin(age.index()) << ": "
-              << selectivity_at_age_(method, age) << endl;
-        }
+#ifdef DEBUG
+        cerr << "Method = " << method << " checky d_age = " << d_age
+        << " age = " << age_bin(age.index()) << ": "
+        << selectivity_at_age_(method, age) << endl;
+#endif
 
       }
     }

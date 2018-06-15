@@ -94,7 +94,6 @@ inline bool To(const ::std::string arg, unsigned &result) {
     int temp = boost::lexical_cast<int>(arg);
     if (temp < 0)
       return false;
-
     result = (unsigned)temp;
   } catch (...) {
     return false;

@@ -94,23 +94,39 @@ void Model::update(void) {
   /*****************************************************************
    * Agent population dynamics
    ****************************************************************/
-  unsigned counter = 0;
-  for (Agent& agent : agents_) {
-    if (agent.alive()) {
-      // This is only half M, I am going to repeat this
-      if (agent.survival()) {
-        agent.growth();
-        agent.maturation();
-        //agent.movement();
-        agent.preference_movement();
-        agent.shedding();
+  if (parameters.preference_movement) {
+     for (Agent& agent : agents_) {
+      if (agent.alive()) {
+        if (agent.survival()) {
+          agent.growth();
+          agent.maturation();
+          agent.movement();
+          agent.preference_movement();
+          agent.shedding();
 
-        if (not burnin) {
-          monitor_.population(agent);
+          if (not burnin) {
+            monitor_.population(agent);
+          }
+        }
+      }
+    }
+  } else {
+    for (Agent& agent : agents_) {
+      if (agent.alive()) {
+        if (agent.survival()) {
+          agent.growth();
+          agent.maturation();
+          agent.movement();
+          //agent.preference_movement();
+          agent.shedding();
+          if (not burnin) {
+            monitor_.population(agent);
+          }
         }
       }
     }
   }
+
   // Don't go further if in burn in
   if (burnin) {
     return;
@@ -178,10 +194,9 @@ void Model::update(void) {
   // Keep track of total catch taken and quit when it is >= observed
   double catch_taken = 0;
   double catch_observed = sum(harvest_.catch_observed_);
-
-  if (parameters.debug) {
-    cerr << "Entering mortality process: yes" << endl;
-  }
+#ifdef DEBUG
+  cerr << "Entering mortality process: yes" << endl;
+#endif
   if (parameters.length_based_selectivity) {
     // If there was observed catch then randomly draw agent and "assign" them with varying probabilities
     // to a particular region/method catch
@@ -221,8 +236,9 @@ void Model::update(void) {
               }
 
               // Is this agent scanned for a tag?
-              /*                  if (chance() < parameters.tagging_scanning(y, region, method)) {
-               monitor.tagging.scan(agent, method);
+              /*
+               if (chance() < parameters.tagging_scanning(y, region, method)) {
+                 monitor.tagging.scan(agent, method);
                }*/
             } else {
               // Does this agent die after released?
@@ -258,8 +274,9 @@ void Model::update(void) {
         if (harvest_.catch_taken_(region, method) < harvest_.catch_observed_(region, method)) {
           // Is this agent caught by this method?
           auto selectivity = harvest_.selectivity_at_age_(method, agent.age_bin());
-          if (parameters.debug)
-            cerr << " method = " << method << "age_bin " << agent.age_bin() << " " << selectivity << " agent actual age " << agent.age() << endl;
+#ifdef DEBUG
+          cerr << " method = " << method << "age_bin " << agent.age_bin() << " " << selectivity << " agent actual age " << agent.age() << endl;
+#endif
 
           auto boldness = (method == agent.get_method_last()) ? (1 - parameters.fishes_shyness(method)) : 1;
           if (chance() <= selectivity * boldness) {
@@ -282,8 +299,9 @@ void Model::update(void) {
               break;
 
             // Is this agent scanned for a tag?
-            /*                if (chance() < parameters.tagging_scanning(y, region, method)) {
-             monitor.tagging.scan(agent, method);
+            /*
+             if (chance() < parameters.tagging_scanning(y, region, method)) {
+               monitor.tagging.scan(agent, method);
              }*/
             //} else {
             // Does this agent die after released?
@@ -330,9 +348,9 @@ void Model::pristine(Time time, function<void()>* callback, bool called_after_se
   for (int age = 0; age < 200; age++)
     number += std::exp(-parameters.fishes_m * age);
 
-  if (parameters.debug) {
-    cerr << "number: " << number << endl;
-  }
+#ifdef DEBUG
+  cerr << "number: " << number << endl;
+#endif
 
   for (auto region : regions) {
     agents_.recruitment_pristine_(region) = parameters.fishes_seed_number / number * parameters.fishes_b0(region) / sum(parameters.fishes_b0);
@@ -357,19 +375,20 @@ void Model::pristine(Time time, function<void()>* callback, bool called_after_se
   while (steps < step_limit) {
     agents_.biomass_update();
     initial_biomass = agents_.get_biomass();
-    if (parameters.debug) {
-      cerr << "initial_biomass in step " << steps << ": " << initial_biomass << "\n";
-    }
+#ifdef DEBUG
+    cerr << "initial_biomass in step " << steps << ": " << initial_biomass << "\n";
+#endif
+
     // run the time step
     update();
     if (find(steps_to_check.begin(), steps_to_check.end(), steps) != steps_to_check.end()) {
       // Check convergence tolerance
       //std::cerr << "checking convergence at iteration " << steps << "\n";
       agents_.biomass_update();
-      if (parameters.debug) {
-        cerr << "current biomass: " << agents_.get_biomass() << endl;
-        cerr << "diff: " << fabs(agents_.get_biomass() - initial_biomass) << "\n";
-      }
+#ifdef DEBUG
+      cerr << "current biomass: " << agents_.get_biomass() << endl;
+      cerr << "diff: " << fabs(agents_.get_biomass() - initial_biomass) << "\n";
+#endif
 
       if (fabs(agents_.get_biomass() - initial_biomass) < equilibrium_tolerance)
         break;
@@ -390,9 +409,9 @@ void Model::pristine(Time time, function<void()>* callback, bool called_after_se
 // Set scalar so that the current spawner biomass
 // matches the intended value
   agents_.set_scalar(sum(parameters.fishes_b0) / sum(agents_.biomass_spawners_));
-  if (parameters.debug) {
-    cerr << "update scalar: " << agents_.get_scalar() << endl;
-  }
+#ifdef DEBUG
+  cerr << "update scalar: " << agents_.get_scalar() << endl;
+#endif
 // Adjust accordingly
   agents_.biomass_spawners_ *= agents_.get_scalar();
   agents_.recruitment_pristine_ *= agents_.get_scalar();
@@ -430,9 +449,9 @@ void Model::run(Time start, Time finish, std::function<void()>* callback, int in
   // Iterate over years
   now = start;
   while (now <= finish) {
-    if (parameters.debug) {
-      cerr << "entering year: " << now << endl;
-    }
+#ifdef DEBUG
+    cerr << "entering year: " << now << endl;
+#endif
     update();
     if (callback)
       (*callback)();

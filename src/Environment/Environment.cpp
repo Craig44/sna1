@@ -25,78 +25,80 @@ vector<double> Environment::get_gradient(const double & lat ,const double & lon,
  * This method will read in data and do preliminary calculations and checks.
  */
 void Environment::initialise(void) {
-  cout << "standard deviation for diffution = " << parameters.standard_dev_for_preference << endl;
-  read_in_data();
-  cout << "finished reading in data" << endl;
-  calculate_preference_layer();
-  cout << "finsihed calculating preference layer" << endl;
-  calculate_gradient();
-  cout << "finished calculating check for initial values -45 and 177" << endl;
-  convert_region_object();
+  if (parameters.preference_movement) {
+    cout << "standard deviation for diffution = " << parameters.standard_dev_for_preference << endl;
+    read_in_data();
+    cout << "finished reading in data" << endl;
+    calculate_preference_layer();
+    cout << "finsihed calculating preference layer" << endl;
+    calculate_gradient();
+    cout << "finished calculating check for initial values -45 and 177" << endl;
+    convert_region_object();
+  }
 }
 
 void Environment::finalise(void) {
-  cerr << "finalise environ" << endl;
-  // Generate input layer
-  boost::filesystem::create_directories("output/environ");
-  // print preference, zonal and meridional gradients
-  boost::filesystem::create_directories("output/environ/preference");
+  if (parameters.preference_movement) {
+    // Generate input layer
+    boost::filesystem::create_directories("output/environ");
+    // print preference, zonal and meridional gradients
+    boost::filesystem::create_directories("output/environ/preference");
 
-  for (unsigned year : years_) {
-    string temp_year = boost::lexical_cast<std::string>(year);
-    string temp_dir = "output/environ/preference/" + temp_year + ".tsv";
-    ofstream preference_by_year(temp_dir);
-    preference_by_year << year << "\t";
-    for (auto lon : lon_mids_) {
-      preference_by_year << lon << "\t";
-    }
-    preference_by_year << "\n";
-    for (unsigned i = 0; i < n_lats_; ++i) {
-      preference_by_year << lat_mids_[i] << "\t";
-      for (unsigned j = 0; j < n_lons_; ++j) {
-        preference_by_year << preference_by_year_[year][i][j] << "\t";
+    for (unsigned year : years_) {
+      string temp_year = boost::lexical_cast<std::string>(year);
+      string temp_dir = "output/environ/preference/" + temp_year + ".tsv";
+      ofstream preference_by_year(temp_dir);
+      preference_by_year << year << "\t";
+      for (auto lon : lon_mids_) {
+        preference_by_year << lon << "\t";
       }
       preference_by_year << "\n";
+      for (unsigned i = 0; i < n_lats_; ++i) {
+        preference_by_year << lat_mids_[i] << "\t";
+        for (unsigned j = 0; j < n_lons_; ++j) {
+          preference_by_year << preference_by_year_[year][i][j] << "\t";
+        }
+        preference_by_year << "\n";
+      }
     }
-  }
 
-  boost::filesystem::create_directories("output/environ/zonal");
-  for (unsigned year : years_) {
-    string temp_year = boost::lexical_cast<std::string>(year);
-    string temp_dir = "output/environ/zonal/" + temp_year + ".tsv";
-    ofstream preference_by_year(temp_dir);
-    preference_by_year << year << "\t";
-    for (auto lon : lon_mids_) {
-      preference_by_year << lon << "\t";
-    }
-    preference_by_year << "\n";
-    for (unsigned i = 0; i < n_lats_; ++i) {
-      preference_by_year << lat_mids_[i] << "\t";
-      for (unsigned j = 0; j < n_lons_; ++j) {
-        preference_by_year << zonal_preference_by_year_[year][i][j] << "\t";
+    boost::filesystem::create_directories("output/environ/zonal");
+    for (unsigned year : years_) {
+      string temp_year = boost::lexical_cast<std::string>(year);
+      string temp_dir = "output/environ/zonal/" + temp_year + ".tsv";
+      ofstream preference_by_year(temp_dir);
+      preference_by_year << year << "\t";
+      for (auto lon : lon_mids_) {
+        preference_by_year << lon << "\t";
       }
       preference_by_year << "\n";
+      for (unsigned i = 0; i < n_lats_; ++i) {
+        preference_by_year << lat_mids_[i] << "\t";
+        for (unsigned j = 0; j < n_lons_; ++j) {
+          preference_by_year << zonal_preference_by_year_[year][i][j] << "\t";
+        }
+        preference_by_year << "\n";
+      }
     }
-  }
-  boost::filesystem::create_directories("output/environ/meridional");
-  for (unsigned year : years_) {
-    string temp_year = boost::lexical_cast<std::string>(year);
-    string temp_dir = "output/environ/meridional/" + temp_year + ".tsv";
-    ofstream preference_by_year(temp_dir);
-    preference_by_year << year << "\t";
-    for (auto lon : lon_mids_) {
-      preference_by_year << lon << "\t";
-    }
-    preference_by_year << "\n";
-    for (unsigned i = 0; i < n_lats_; ++i) {
-      preference_by_year << lat_mids_[i] << "\t";
-      for (unsigned j = 0; j < n_lons_; ++j) {
-        preference_by_year << meridional_preference_by_year_[year][i][j] << "\t";
+    boost::filesystem::create_directories("output/environ/meridional");
+    for (unsigned year : years_) {
+      string temp_year = boost::lexical_cast<std::string>(year);
+      string temp_dir = "output/environ/meridional/" + temp_year + ".tsv";
+      ofstream preference_by_year(temp_dir);
+      preference_by_year << year << "\t";
+      for (auto lon : lon_mids_) {
+        preference_by_year << lon << "\t";
       }
       preference_by_year << "\n";
+      for (unsigned i = 0; i < n_lats_; ++i) {
+        preference_by_year << lat_mids_[i] << "\t";
+        for (unsigned j = 0; j < n_lons_; ++j) {
+          preference_by_year << meridional_preference_by_year_[year][i][j] << "\t";
+        }
+        preference_by_year << "\n";
+      }
     }
   }
-  cerr << "exit finailise environ" <<endl;
 }
 
 /*
@@ -176,11 +178,15 @@ void Environment::calculate_gradient(void) {
  * @return the preference value
  *
 */
-double Environment::pref_function(double x,double& mu,double& low_tol, double& upp_tol) {
-  if (x <= mu) {
-    return exp(log(0.1) * pow(x - mu,2) / pow(low_tol - mu,2));
+vector<double> Environment::pref_function(vector<double> values, double& mu,double& low_tol, double& upp_tol) {
+  vector<double> temp_vector;
+  for (unsigned i = 0; i < values.size(); ++i) {
+    if (values[i] <= mu)
+      temp_vector.push_back(exp(log(0.1) * pow(values[i] - mu,2) / pow(low_tol - mu,2)));
+    else
+      temp_vector.push_back(exp(log(0.1) * pow(values[i] - mu,2) / pow(upp_tol - mu,2)));
   }
-  return exp(log(0.1) * pow(x - mu,2) / pow(upp_tol - mu,2));
+  return temp_vector;
 }
 
 template<typename type>
@@ -218,24 +224,18 @@ void Environment::read_in_data(void) {
 
   // So for I have only implemented sst and depth as descriptors of spatial distribution
   vector<string> dirs = {"input/environ/base", "input/environ/sst"};
-  double optimum_preference = 0;
-  double lower_preference = 0;
-  double upper_preference = 0;
+
 
   for (unsigned dir = 0; dir < dirs.size(); ++dir) {
 
     if (dir == 0) {
-      optimum_preference = parameters.depth_optimum;
-      lower_preference = parameters.depth_lower;
-      upper_preference = parameters.depth_upper;
-      cout << "about to calculate depth preference optimum = " << optimum_preference << " lower = " << lower_preference << " upper = " << upper_preference << endl;
-
+      optimum_preference_ = parameters.depth_optimum;
+      lower_preference_ = parameters.depth_lower;
+      upper_preference_ = parameters.depth_upper;
     } else if (dir == 1) {
-      optimum_preference = parameters.sst_optimum;
-      lower_preference = parameters.sst_lower;
-      upper_preference = parameters.sst_upper;
-      cout << "about to calculate sst preference optimum = " << optimum_preference << " lower = " << lower_preference << " upper = " << upper_preference << endl;
-
+      optimum_preference_ = parameters.sst_optimum;
+      lower_preference_ = parameters.sst_lower;
+      upper_preference_ = parameters.sst_upper;
     }
     boost::filesystem::path current_dir(dirs[dir]); //
 
@@ -281,7 +281,7 @@ void Environment::read_in_data(void) {
         while(getline(file, current_line)){
           vector<double> temp_depths;
           process_line(current_line, temp_depths);
-          depths_.push_back(temp_depths);
+          depths_.push_back(pref_function(temp_depths, optimum_preference_, lower_preference_, upper_preference_));
         }
         continue;
       }
@@ -329,8 +329,9 @@ void Environment::read_in_data(void) {
         vector<double> row_vector;
         process_line(current_line, row_vector);
         if (dir == 1) {
-          sst_[temp_year].push_back(row_vector);
+          sst_[temp_year].push_back(pref_function(row_vector, optimum_preference_, lower_preference_, upper_preference_));
         }
+
         if (row_vector.size() != n_lons_) {
           cerr << "found " << row_vector.size() << " columns in file '" << name << "', when there should be " << n_lons_ <<  " please fix this at row '" << lat_iter + 1 << "'" << endl;
           exit (EXIT_FAILURE);

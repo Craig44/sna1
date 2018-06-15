@@ -41,6 +41,9 @@ class Environment {
     unsigned                              n_lats_;
     unsigned                              n_lons_;
     vector<bool>                          directories_;
+    double                                optimum_preference_ = 0;
+    double                                lower_preference_ = 0;
+    double                                upper_preference_ = 0;
 
     /*
      * Some in house utility functions used within the class
@@ -48,7 +51,7 @@ class Environment {
     unsigned                              get_long_index(double lon);
     unsigned                              get_lat_index(double lat);
     void                                  calculate_gradient(void);
-    double                                pref_function(double x,double& mu,double& low_tol, double& upp_tol);
+    vector<double>                        pref_function(vector<double> values,double& mu,double& low_tol, double& upp_tol);
     void                                  calculate_preference_layer(void);
     void                                  read_in_data(void);
     void                                  convert_region_object(void);

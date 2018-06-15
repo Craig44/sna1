@@ -61,7 +61,6 @@ void Agents::finalise(void) {
           trajs << agent.length_ << "\n";
       }
   }
-  cerr << "exit agents fishes" << endl;
 }
 
 
@@ -116,9 +115,10 @@ void Agents::recruitment_update(void) {
             auto determ = 4*h*r0*s/((5*h-1)*s+s0*(1-h));
 
             double strength = parameters.fishes_rec_strengths(y, region);
-            if(parameters.debug) {
-               cerr << "YCS in year " << now << ": " << strength << endl;
-            }
+#ifdef DEBUG
+            cerr << "YCS in year " << now << ": " << strength << endl;
+#endif
+
             if (strength < 0) {
                 strength = Lognormal(1, parameters.fishes_rec_var).random();
             }
