@@ -2,19 +2,18 @@ all: sna1.exe
 
 clean:
 	rm -f *.debug *.exe *.o
-## For printing	
-print-%  : ; @echo $* = $($*)
 #############################################################
 # Operating system
-$(warning If you have issues building on windows see 'dependencies on windows.txt' in the scripts folder for help)
 
-UNAME := $(shell uname )
+UNAME := $(shell uname)
 ifeq ($(UNAME), Linux)
 	OS := linux
 endif
 ifeq ($(UNAME), WindowsNT)
 	OS := win
 endif
+
+$(warning If you have issues building on windows see 'WindowNotesForBuilding.txt' in the scripts folder for help $(OS))
 
 
 
@@ -49,7 +48,7 @@ requires/boost/lib: requires/boost
 	touch $@
 endif
 ifeq ($(OS), win)
-requires/boost/lib: requires/boost
+requires/boost/stage/lib: requires/boost
 	##cmd /C bootstrap.bat gcc --with-libraries=filesystem,test
 	cd $< ; cmd /C bootstrap.bat gcc $(BOOST_BOOTSTRAP_FLAGS)
 	$(warning The file 'project-config.jam' may need a more comprehensive change, but for now this is all I did, see the file building dependencies on windows.txt in the scripts folder)
@@ -59,8 +58,6 @@ requires/boost/lib: requires/boost
 
 	touch $@
 endif
-
-
 
 
 STENCILA_VERSION := 0.2
@@ -80,8 +77,12 @@ requires/r-packages.installed:
 	Rscript -e "install.packages(c('tidyr','dplyr','ggplot2', 'knitr'), repos='http://cran.us.r-project.org')"
 	touch $@
 
-
+ifeq ($(OS), linux)
+requires: requires/boost/lib requires/stencila requires/r-packages.installed
+endif
+ifeq ($(OS), win)
 requires: requires/boost/stage/lib requires/stencila requires/r-packages.installed
+endif
 
 
 #############################################################
@@ -90,53 +91,55 @@ $(info entering executable)
 # Define compile options and required libraries
 CXX_FLAGS := -std=c++11 -Wall -Wno-unused-function -Wno-unused-local-typedefs -Wno-unused-variable -pthread
 INC_DIRS := -I. -Irequires/boost -Irequires/stencila 
-sub_dir := $(shell find_linux src -type d)
-INC_DIRS += $(addprefix  -I,  $(sub_dir))
-
-LIB_DIRS := -Lrequires/boost/stage/lib
-LIBS := -lboost_system-mgw51-mt-1_62 -lboost_filesystem-mgw51-mt-1_62 -lboost_random-mgw51-mt-1_62
-
 
 ifeq ($(OS), linux)
 	# Find all .hpp and .cpp files (to save time don't recurse into subdirectories)
 	SRC := $(shell find src -maxdepth 3 -mindepth 1 -name "*.h")
 	SRC += $(shell find src -maxdepth 3 -mindepth 2 -name "*.cpp") # No source files in upper layer apart from the main();
 	main := $(shell find src -maxdepth 1 -name "*.cpp")
-	
+	sub_dir := $(shell find src -type d)
+	INC_DIRS += $(addprefix  -I,  $(sub_dir))
+	LIB_DIRS := -Lrequires/boost/lib
+	LIBS := -lboost_system -lboost_filesystem
+	TEST_LIB := -lboost_unit_test_framework
 endif
 ifeq ($(OS), win)
 	# Find all .hpp and .cpp files (to save time don't recurse into subdirectories)
 	SRC := $(shell find_linux src -maxdepth 3 -mindepth 1 -name "*.h")
 	SRC += $(shell find_linux src -maxdepth 3 -mindepth 2 -name "*.cpp") # No source files in upper layer apart from the main();
 	main := $(shell find_linux src -maxdepth 1 -name "*.cpp")
+	sub_dir := $(shell find_linux src -type d)
+	INC_DIRS += $(addprefix  -I,  $(sub_dir))
+	LIB_DIRS := -Lrequires/boost/stage/lib
+	LIBS := -lboost_system-mgw51-mt-1_62 -lboost_filesystem-mgw51-mt-1_62
+	TEST_LIB := -lboost_unit_test_framework-mgw51-mt-1_62
 endif
 
 $(info source files are $(SRC))
 $(info includes are $(INC_DIRS))
 $(info main $(main))
-$(info requires = requires)
 
 # Executable for normal use
-sna1.exe: $(SRC)
+sna1.exe: $(SRC) requires
 	$(CXX) $(CXX_FLAGS) -O3 $(INC_DIRS) -o$@ $(main) $(LIB_DIRS) $(LIBS)
 
 # Executable for debugging
-sna1.debug: $(HPPS) $(CPPS) requires
-	$(CXX) $(CXX_FLAGS) -g -O0 $(INC_DIRS) -DDEBUG -o$@ sna1.cpp $(LIB_DIRS) $(LIBS)
+sna1.debug: $(SRC) requires
+	$(CXX) $(CXX_FLAGS) -g -O0 $(INC_DIRS) -DDEBUG -o$@ $(main) $(LIB_DIRS) $(LIBS)
 
 # Executable for profiling
-sna1.prof: $(HPPS) $(CPPS)
-	$(CXX) $(CXX_FLAGS) -pg -O3 $(INC_DIRS) -o$@ sna1.cpp $(LIB_DIRS) $(LIBS)
+sna1.prof: $(SRC) requires
+	$(CXX) $(CXX_FLAGS) -pg -O3 $(INC_DIRS) -o$@ $(main) $(LIB_DIRS) $(LIBS)
 
 # Test executable with coverage (and no optimisation) for tests that run fast
 # These tests are likely to be run often during development and don't require optimisation
 # The `no-inline` options provide better coverage statistics because lines don't get "inlined away"
-tests-fast.exe: $(HPPS) tests/fast.cpp $(TEST_CPPS) requires
-	$(CXX) $(CXX_FLAGS) -g -O0 --coverage -fno-inline -fno-inline-small-functions -fno-default-inline $(INC_DIRS) -o$@ tests/fast.cpp $(LIB_DIRS) $(LIBS) -lboost_unit_test_framework -lgcov
+tests-fast.exe: $(SRC) tests/fast.cpp $(TEST_CPPS) requires
+	$(CXX) $(CXX_FLAGS) -g -O0 --coverage -fno-inline -fno-inline-small-functions -fno-default-inline $(INC_DIRS) -o$@ tests/fast.cpp $(LIB_DIRS) $(LIBS) $(TEST_LIB) -lgcov
 
 # Test executable with no coverage and full optimisation for tests that run very slowly without these
-tests-slow.exe: $(HPPS) tests/slow.cpp $(TEST_CPPS) requires
-	$(CXX) $(CXX_FLAGS) -O3 $(INC_DIRS) -o$@ tests/slow.cpp $(LIB_DIRS) $(LIBS) -lboost_unit_test_framework
+tests-slow.exe: $(SRC) tests/slow.cpp $(TEST_CPPS) requires
+	$(CXX) $(CXX_FLAGS) -O3 $(INC_DIRS) -o$@ tests/slow.cpp $(LIB_DIRS) $(LIBS) $(TEST_LIB)
 
 
 #############################################################
@@ -151,6 +154,7 @@ run: sna1.exe
 # Testing
 
 # CASAL v230 for a linux binary
+.PHONY: casal/casal-230.zip
 casal/casal-230.zip:
 	wget -O $@ ftp://ftp.niwa.co.nz/software/casal/CASALv230-2012-03-21.zip
 
@@ -161,18 +165,24 @@ casal/casal-latest.zip:
 
 # Unzip a CASAL zip
 casal/casal-%: casal/casal-%.zip
-	rm -rf $@
-	mkdir $@
-	unzip $< -d $@
+	unzip -o -d $@ $<
 
 # Install CASAL
 #   - R package
 #   - symbolic link to Linux executable
+ifeq ($(OS), linux)
 casal/casal.installed: casal/casal-230 casal/casal-latest
 	R CMD INSTALL casal/casal-latest/R_library/casal_2.30.tar.gz
 	chmod 755 casal/casal-230/Program/Linux/casal
 	ln -sf casal-230/Program/Linux/casal tests/casal/casal
+	touch $@endif
+endif
+ifeq ($(OS), win)
+casal/casal.installed: casal/casal-230 casal/casal-latest
+	cmd /C  R CMD INSTALL casal/casal-latest/R_library/casal_2.30.tar.gz
+	cp casal/casal-230/Program/casal.exe tests/casal/casal.exe
 	touch $@
+endif
 
 # Run fast tests
 tests-fast: tests-fast.exe

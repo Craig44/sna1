@@ -1,0 +1,43 @@
+Notes so that I can build the windows executable again, was a tedious process
+You need to download wget, a recent version so that you can SSL connect to github archive for
+the stencilia dependency. I used wget 1.19.4 'https://eternallybored.org/misc/wget/'
+to make it easier you will need a few linux utility commands. I stole mine from Casal2
+One that was a pain in the ass was find() is different between windows and linux. So I got
+a linux find.exe changed it to find_linux which should be in a folder in this directory.
+other utilities you will need, many of these will be in Rtools as well, so that may be useful to install
+	-sed
+	-uname
+	-rm
+	-unzip
+	-tar
+	-mv
+	-You will want R installed.
+	-touch
+	
+Building Boost.
+I had trouble with the 'project-config.jam' file this should get modified during the bootstrap.bat call
+but wasn't for me blah... just double check that it looks like below, otherwise it will build all the libraries
+many of them will fail which will give you the impression everything failed but that is not the case.
+so if you have this format it will only build the two libraries we wont (fingers cross with no errors)
+
+`````````````````````````````````````````````
+import option ; 
+import feature ;
+
+using gcc ; 
+
+project : default-build <toolset>gcc ; 
+
+libraries = --with-filesystem --with-test --with-random ;
+
+option.set keep-going : false ; 
+ 
+option.set libdir : /lib ;
+``````````````````````````````````````````````
+
+you may need to change verions of the boost library
+linux you can be loose and write the g++ call -lboost_system  but on windows you need be more explicit e.g.
+-lboost_system-mgw51-mt-1_62 and so depending on boost version and compiler this may change
+
+
+And then the rest should be good to go also 

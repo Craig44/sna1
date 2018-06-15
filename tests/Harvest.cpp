@@ -2,7 +2,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "../harvest.hpp"
+#include "Harvest/Harvest.cpp"
 
 
 BOOST_AUTO_TEST_SUITE(harvest)
@@ -10,6 +10,7 @@ BOOST_AUTO_TEST_SUITE(harvest)
 BOOST_AUTO_TEST_CASE(selectivity){
 	Harvest harvest;
 
+	parameters.length_based_selectivity = true;
 	parameters.harvest_sel_mode = {20, 25, 30, 35};
 	parameters.harvest_sel_steep1 = {1, 3, 5, 10};
 	parameters.harvest_sel_steep2 = {1000, 100, 10, 5};
@@ -17,7 +18,7 @@ BOOST_AUTO_TEST_CASE(selectivity){
 	harvest.initialise();
 
 	// Output selectivity at length
-	harvest.selectivity_at_length.write("tests/harvest/selectivity_at_length.tsv");
+	harvest.selectivity_at_length_.write("tests/harvest/selectivity_at_length.tsv");
 	
 	// Output parameters
 	std::ofstream pars("tests/harvest/selectivity_pars.tsv");

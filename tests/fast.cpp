@@ -5,5 +5,5 @@
  * Fast unit tests that are run frequently (ie. during development)
  */
 
-#include "fish.cpp"
-#include "harvest.cpp"
+#include "Agent.cpp"
+#include "Harvest.cpp"

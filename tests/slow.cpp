@@ -10,7 +10,7 @@
  * running CASAL, running tagging experiment code
  */
 
-#include "../model.hpp"
+#include "Model/Model.cpp"
 
 BOOST_AUTO_TEST_SUITE(slow)
 

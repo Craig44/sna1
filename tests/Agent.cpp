@@ -1,57 +1,59 @@
 #include <boost/test/unit_test.hpp>
 
-#include "../fishes.hpp"
+#include "Agents/Agents.cpp"
+#include "Agents/Agent.cpp"
+#include "Model/Model.h"
 
-
-BOOST_AUTO_TEST_SUITE(fish)
+BOOST_AUTO_TEST_SUITE(agent)
 
 BOOST_AUTO_TEST_CASE(birth){
-	Fish fish;
-	fish.born(HG);
+	Agent agent;
+	agent.born(HG);
 
-	BOOST_CHECK(fish.alive());
+	BOOST_CHECK(agent.alive());
 
-	BOOST_CHECK_EQUAL(fish.region, HG);
+	BOOST_CHECK_EQUAL(agent.get_region(), HG);
 
-	BOOST_CHECK_EQUAL(fish.age(), 0);
-	BOOST_CHECK_EQUAL(fish.age_bin(), 0);
+	BOOST_CHECK_EQUAL(agent.age(), 0);
+	BOOST_CHECK_EQUAL(agent.age_bin(), 0);
 
-	BOOST_CHECK_EQUAL(fish.length, 0);
-	BOOST_CHECK_EQUAL(fish.length_bin(), 0);
+	BOOST_CHECK_EQUAL(agent.length_, 0);
+	BOOST_CHECK_EQUAL(agent.length_bin(), 0);
 }
 
 BOOST_AUTO_TEST_CASE(seed){
-	Fish fish;
-	fish.seed();
+	Agent agent;
+	agent.seed();
 
-	BOOST_CHECK(fish.alive());
+	BOOST_CHECK(agent.alive());
 
-	BOOST_CHECK(fish.age() > 0);
-	BOOST_CHECK(fish.length > 0);
+	BOOST_CHECK(agent.age() > 0);
+	BOOST_CHECK(agent.length_ > 0);
 }
 
 // Runs fish movement over many time steps and many 
 // fish and calculates the resulting distribution of fish 
 // across regions for each home region
 Array<double, Regions, RegionTos> movement_run(void) {
-	Fishes fishes(5000);
+  Model* model = nullptr;
+	Agents agents(5000,model);
 
 	int count = 0;
-	for (auto& fish : fishes) {
+	for (auto& fish : agents) {
 		fish.born(Region(count++ % 3));
 	}
 
 	for (int t=0; t<100; t++) {
-		for (auto& fish : fishes) {
+		for (auto& fish : agents) {
 			fish.movement();
 		}
 	}
 
 	Array<double, Regions, RegionTos> dist;
-	for (auto& fish : fishes) {
-		dist(fish.home, fish.region)++;
+	for (auto& fish : agents) {
+		dist(fish.home_, fish.region_)++;
 	}
-	dist /= fishes.size()/3;
+	dist /= agents.size()/3;
 
 	return dist;
 }
