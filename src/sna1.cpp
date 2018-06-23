@@ -8,6 +8,7 @@ int main(int argc, char** argv) {
   cerr << "Enter main" << endl;
 #endif
   // This is to give every Agent it's own unique random number generator implemented for the preference movement functionality
+  int start_s=clock();
   Model model;
   model.initialise();
 
@@ -39,6 +40,10 @@ int main(int argc, char** argv) {
   }
 
   model.finalise();
+  // the code you wish to time goes here
+  int stop_s=clock();
+  cout << setprecision(7);
+  cout << "time: " << (stop_s-start_s)/double(CLOCKS_PER_SEC) << endl;
 
   return 0;
 }

@@ -7,15 +7,17 @@
 // C/C++ standard library
 #include <fstream>
 #include <vector>
-#include <thread>
+
 #include <map>
 #include <iostream>
 #include <string>
 #include <cstdlib>
-
+#include <ctime>
+#include <thread>
 // Boost library
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
+
 
 // Stencila structure, array and query classes
 #include <stencila/dimension.hpp>

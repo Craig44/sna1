@@ -13,7 +13,7 @@ ifeq ($(UNAME), WindowsNT)
 	OS := win
 endif
 
-$(warning If you have issues building on windows see 'WindowNotesForBuilding.txt' in the scripts folder for help $(OS))
+$(warning If you have issues building on windows see 'WindowNotesForBuilding.txt' in the scripts folder for help)
 
 
 
@@ -48,14 +48,13 @@ requires/boost/lib: requires/boost
 	touch $@
 endif
 ifeq ($(OS), win)
-requires/boost/stage/lib: requires/boost
-	##cmd /C bootstrap.bat gcc --with-libraries=filesystem,test
+requires/boost/lib: requires/boost
+	$(warning cd =  $< )
 	cd $< ; cmd /C bootstrap.bat gcc $(BOOST_BOOTSTRAP_FLAGS)
 	$(warning The file 'project-config.jam' may need a more comprehensive change, but for now this is all I did, see the file building dependencies on windows.txt in the scripts folder)
 	sed -i "s/msvc/gcc/g" $</project-config.jam
 	cd $< ; ./b2 $(BOOST_B2_FLAGS)
-	./b2 -d0 --prefix=. link=static install cxxflags=-fPIC runtime-link=static stage
-
+	##./b2 -d0 --prefix=. link=static install cxxflags=-fPIC runtime-link=static stage
 	touch $@
 endif
 
@@ -76,13 +75,8 @@ requires/stencila: requires/stencila-cpp-$(STENCILA_VERSION).zip
 requires/r-packages.installed:
 	Rscript -e "install.packages(c('tidyr','dplyr','ggplot2', 'knitr'), repos='http://cran.us.r-project.org')"
 	touch $@
-
-ifeq ($(OS), linux)
+	
 requires: requires/boost/lib requires/stencila requires/r-packages.installed
-endif
-ifeq ($(OS), win)
-requires: requires/boost/stage/lib requires/stencila requires/r-packages.installed
-endif
 
 
 #############################################################
@@ -110,8 +104,8 @@ ifeq ($(OS), win)
 	main := $(shell find_linux src -maxdepth 1 -name "*.cpp")
 	sub_dir := $(shell find_linux src -type d)
 	INC_DIRS += $(addprefix  -I,  $(sub_dir))
-	LIB_DIRS := -Lrequires/boost/stage/lib
-	LIBS := -lboost_system-mgw51-mt-1_62 -lboost_filesystem-mgw51-mt-1_62
+	LIB_DIRS := -Lrequires/boost/lib
+	LIBS := -lboost_system -lboost_filesystem -lboost_thread -lws2_32 -pthread
 	TEST_LIB := -lboost_unit_test_framework-mgw51-mt-1_62
 endif
 
@@ -120,8 +114,8 @@ $(info includes are $(INC_DIRS))
 $(info main $(main))
 
 # Executable for normal use
-sna1.exe: $(SRC) requires
-	$(CXX) $(CXX_FLAGS) -O3 $(INC_DIRS) -o$@ $(main) $(LIB_DIRS) $(LIBS)
+sna1.exe: $(SRC)
+	$(CXX) $(CXX_FLAGS) -O3 $(INC_DIRS) -DDEBUG -o$@ $(main) $(LIB_DIRS) $(LIBS)
 
 # Executable for debugging
 sna1.debug: $(SRC) requires

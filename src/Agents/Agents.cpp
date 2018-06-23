@@ -10,7 +10,6 @@
  * The variable, `scalar` is then used to scale other variables, like biomass, to population levels.
  */
 
-
 /**
  * Initialise parameters etc
  */

@@ -33,6 +33,56 @@ void Model::finalise(void) {
   monitor_.finalise();
 }
 
+/*
+ * I split this out of update() so that I could thread it using stl::thread, I tested you don't lose much speed with this method (1 second for a simple model with 850,000 agents)
+*/
+void Model::run_individual_processes(Monitor& monitor, Agents& agents, unsigned first_element, unsigned last_element, bool burnin) {
+  cout << "thread id = " << boost::this_thread::get_id() << endl;
+  /*****************************************************************
+   * Agent population dynamics
+   ****************************************************************/
+  if (parameters.preference_movement) {
+    for(unsigned i = first_element; i < last_element; ++i) {
+      if (agents[i].alive()) {
+        if (agents[i].survival()) {
+          agents[i].growth();
+          agents[i].maturation();
+          agents[i].movement();
+          agents[i].preference_movement();
+          agents[i].shedding();
+
+          if (not burnin) {
+            boost::lock_guard<boost::mutex> lock(mutex_monitor_); // will unlock when out of scope
+            monitor.population(agents[i]);
+          }
+        }
+      }
+    }
+  } else {
+    for(unsigned i = first_element; i < last_element; ++i) {
+      if (agents[i].alive()) {
+        if (agents[i].survival()) {
+          agents[i].growth();
+          agents[i].maturation();
+          agents[i].movement();
+          //agents_[i].preference_movement();
+          agents[i].shedding();
+          if (not burnin) {
+            boost::lock_guard<boost::mutex> lock(mutex_monitor_2_); // will unlock when out of scope
+            monitor.population(agents[i]);
+          }
+        }
+      }
+    }
+  }
+/*  cout << "about to tell condition we are done job for thread = " << boost::this_thread::get_id() << endl;
+  boost::unique_lock<boost::mutex> lock(mutex_); // lock workCount and condition
+  workCount_--;
+  condition_.notify_all();
+  cout << "thread leaving = " << boost::this_thread::get_id() << endl;*/
+
+}
+
 /**
  * The main update function for the model
  * called at each time step? every year
@@ -91,41 +141,45 @@ void Model::update(void) {
 #ifdef DEBUG
   cerr << "finished recruits" << endl;
 #endif
-  /*****************************************************************
-   * Agent population dynamics
-   ****************************************************************/
-  if (parameters.preference_movement) {
-     for (Agent& agent : agents_) {
-      if (agent.alive()) {
-        if (agent.survival()) {
-          agent.growth();
-          agent.maturation();
-          agent.movement();
-          agent.preference_movement();
-          agent.shedding();
 
-          if (not burnin) {
-            monitor_.population(agent);
-          }
-        }
-      }
-    }
-  } else {
-    for (Agent& agent : agents_) {
-      if (agent.alive()) {
-        if (agent.survival()) {
-          agent.growth();
-          agent.maturation();
-          agent.movement();
-          //agent.preference_movement();
-          agent.shedding();
-          if (not burnin) {
-            monitor_.population(agent);
-          }
-        }
-      }
-    }
-  }
+  //
+  workCount_ = n_child_threads_ + 1; // number of threads available child + main
+
+  agents_per_thread_ = agents_.size() / 4;
+  cout << " agents per thread " << agents_per_thread_ << " size of agent = " << agents_.size() << " the last bracket = " << agents_per_thread_ * 4  << endl;
+
+/*
+  //run_individual_processes(0,agents_.size(), burnin);
+  // TODO try and make this dynamic to the number of threads available.
+  io_service_.post(boost::bind(run_individual_processes, this, std::ref(monitor_),std::ref(agents_), 0, agents_per_thread_, burnin));
+  io_service_.post(boost::bind(run_individual_processes, this, std::ref(monitor_),std::ref(agents_), agents_per_thread_, (agents_per_thread_ * 2), burnin));
+  io_service_.post(boost::bind(run_individual_processes, this, std::ref(monitor_),std::ref(agents_), agents_per_thread_ * 2, (agents_per_thread_ * 3), burnin));
+  io_service_.post(boost::bind(run_individual_processes, this, std::ref(monitor_),std::ref(agents_), agents_per_thread_ * 3, (agents_per_thread_ * 4), burnin));
+  //io_service_.post(boost::bind(run_individual_processes, this, std::ref(monitor_),std::ref(agents_), agents_per_thread_ * 4, (agents_per_thread_ * 5), burnin));
+
+  run_individual_processes(monitor_, agents_, agents_per_thread_ * 4, agents_.size(), burnin);
+
+  {
+     boost::unique_lock<boost::mutex> lock(mutex_); // lock workCount and condition
+     condition_.wait(lock, [&]{ return workCount_ == 0; }); // Continue past this point if workCount_ == 0, if this will be dependent on the number of jobs you need to do.
+  }*/
+
+  agents_per_thread_ = 800000;
+  // An alternative to the boost library is use std::thread
+  std::thread t1(&run_individual_processes, this, std::ref(monitor_),std::ref(agents_), 0, agents_per_thread_, burnin);
+  std::thread t2(&run_individual_processes, this, std::ref(monitor_),std::ref(agents_), agents_per_thread_, (agents_per_thread_ * 2), burnin);
+  std::thread t3(&run_individual_processes, this, std::ref(monitor_),std::ref(agents_), agents_per_thread_ * 2, (agents_per_thread_ * 3), burnin);
+  std::thread t4(&run_individual_processes, this, std::ref(monitor_),std::ref(agents_), agents_per_thread_ * 3, (agents_per_thread_ * 4), burnin);
+  //std::thread t5(&run_individual_processes, this, std::ref(monitor_),std::ref(agents_), agents_per_thread_ * 4, agents_.size(), burnin);
+
+  t1.join();
+  t2.join();
+  t3.join();
+  t4.join();
+  //t5.join();
+#ifdef DEBUG
+  cerr << "finished individuals processes" << endl;
+#endif
 
   // Don't go further if in burn in
   if (burnin) {
