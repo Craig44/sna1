@@ -83,7 +83,7 @@ requires: requires/boost/lib requires/stencila requires/r-packages.installed
 # Executables
 $(info entering executable)
 # Define compile options and required libraries
-CXX_FLAGS := -std=c++14 -Wall -Wno-unused-function -Wno-unused-local-typedefs -Wno-unused-variable -pthread
+CXX_FLAGS := -std=c++17 -Wall -Wno-unused-function -Wno-unused-local-typedefs -Wno-unused-variable -pthread
 INC_DIRS := -I. -Irequires/boost -Irequires/stencila 
 
 ifeq ($(OS), linux)
@@ -115,7 +115,7 @@ $(info main $(main))
 
 # Executable for normal use
 sna1.exe: $(SRC)
-	$(CXX) $(CXX_FLAGS) -O3 $(INC_DIRS) -g -o$@ $(main) $(LIB_DIRS) $(LIBS)
+	$(CXX) $(CXX_FLAGS) -O3 $(INC_DIRS) -g -DDEBUG -o$@ $(main) $(LIB_DIRS) $(LIBS)
 
 # Executable for debugging
 sna1.debug: $(SRC) requires

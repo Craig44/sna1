@@ -25,24 +25,24 @@ vector<double> Environment::get_gradient(const double & lat ,const double & lon,
  * This method will read in data and do preliminary calculations and checks.
  */
 void Environment::initialise(void) {
-  if (parameters.preference_movement) {
-    cout << "standard deviation for diffution = " << parameters.standard_dev_for_preference << endl;
+    cout << "intialising Environemnt" << endl;
     read_in_data();
     cout << "finished reading in data" << endl;
-    calculate_preference_layer();
-    cout << "finsihed calculating preference layer" << endl;
-    calculate_gradient();
-    cout << "finished calculating check for initial values -45 and 177" << endl;
+    if (parameters.preference_movement) {
+      calculate_preference_layer();
+      cout << "finsihed calculating preference layer" << endl;
+      calculate_gradient();
+    }
     convert_region_object();
-  }
+
 }
 
 void Environment::finalise(void) {
   if (parameters.preference_movement) {
     // Generate input layer
-    boost::filesystem::create_directories("output/environ");
+    boost::filesystem::create_directories("output/spatial_layers");
     // print preference, zonal and meridional gradients
-    boost::filesystem::create_directories("output/environ/preference");
+    boost::filesystem::create_directories("output/spatial_layers/preference");
 
     for (unsigned year : years_) {
       string temp_year = boost::lexical_cast<std::string>(year);
@@ -62,7 +62,7 @@ void Environment::finalise(void) {
       }
     }
 
-    boost::filesystem::create_directories("output/environ/zonal");
+    boost::filesystem::create_directories("output/spatial_layers/zonal");
     for (unsigned year : years_) {
       string temp_year = boost::lexical_cast<std::string>(year);
       string temp_dir = "output/environ/zonal/" + temp_year + ".tsv";
@@ -80,7 +80,7 @@ void Environment::finalise(void) {
         preference_by_year << "\n";
       }
     }
-    boost::filesystem::create_directories("output/environ/meridional");
+    boost::filesystem::create_directories("output/spatial_layers/meridional");
     for (unsigned year : years_) {
       string temp_year = boost::lexical_cast<std::string>(year);
       string temp_dir = "output/environ/meridional/" + temp_year + ".tsv";
@@ -135,13 +135,6 @@ unsigned Environment::get_lat_index(double lat) {
 */
 void Environment::calculate_gradient(void) {
   cout << "calculate gradient" << endl;
-  // calcualte cell mid_points
-  for (unsigned i = 0; i < n_lats_; ++i)
-    lat_mids_.push_back((lats_[i] + lats_[i+1])/2.0);
-  for (unsigned i = 0; i < n_lons_; ++i)
-    lon_mids_.push_back((lons_[i] + lons_[i+1])/2.0);
-
-
   // Calculate gradient using forward, backwards, and central difference approximation
   // assume h = 1
   for (auto year : years_) {
@@ -189,8 +182,15 @@ vector<double> Environment::pref_function(vector<double> values, double& mu,doub
   return temp_vector;
 }
 
+
+/*
+ * @process_line template method for converting user inputs to objects in memory
+ * @param current_line line to process
+ * @param final_line an empty vector that will be populated by the method
+ *
+*/
 template<typename type>
-void Environment::process_line(string current_line, vector<type>& final_line) {
+void Environment::process_line(string current_line, vector<type>& final_line, string& file_name) {
   boost::replace_all(current_line, "\t", " ");
   boost::replace_all(current_line, ",", " ");
   boost::replace_all(current_line, "  ", " ");
@@ -201,7 +201,7 @@ void Environment::process_line(string current_line, vector<type>& final_line) {
   type element;
   for (auto col : split_current_line) {
     if (!To<type>(col, element)) {
-      cerr << "failed to convert " << col << " to double, either the code is shit or you have character in the lats.txt file" << endl;
+      cerr << "failed to convert '" << col << "' to double in file '" << file_name << "'. This is commonly caused by having a trailing space on each row, or a character being present in the file" << endl;
       exit (EXIT_FAILURE);
     }
     final_line.push_back(element);
@@ -219,11 +219,12 @@ void Environment::read_in_data(void) {
   // Define some variables that will be used throughout the code. temporary variables to be destroyed at the end of function call
   bool lat_file_found = false;
   bool long_file_found = false;
+  bool year_specific_variable = false;
   string current_line;
   vector<string> current_line_parts;
 
   // So for I have only implemented sst and depth as descriptors of spatial distribution
-  vector<string> dirs = {"input/environ/base", "input/environ/sst"};
+  vector<string> dirs = {"input/spatial_layers/base", "input/spatial_layers/catch", "input/spatial_layers/sst"};
 
 
   for (unsigned dir = 0; dir < dirs.size(); ++dir) {
@@ -232,7 +233,7 @@ void Environment::read_in_data(void) {
       optimum_preference_ = parameters.depth_optimum;
       lower_preference_ = parameters.depth_lower;
       upper_preference_ = parameters.depth_upper;
-    } else if (dir == 1) {
+    } else if (dir == 2) {
       optimum_preference_ = parameters.sst_optimum;
       lower_preference_ = parameters.sst_lower;
       upper_preference_ = parameters.sst_upper;
@@ -241,10 +242,9 @@ void Environment::read_in_data(void) {
 
     // if it doesn't exist skip it
     if (!boost::filesystem::exists(current_dir)) {
-
       directories_.push_back(false);
       if (dir == 0) {
-        cerr << "could not find directory " << dirs[dir] << endl;
+        cerr << "could not find directory " << dirs[dir] << " this is expected under your configurations"<< endl;
         exit (EXIT_FAILURE);
       }
 
@@ -261,7 +261,7 @@ void Environment::read_in_data(void) {
         lat_file_found = true;
         boost::filesystem::ifstream file{iter->path()};
         while(getline(file, current_line))
-          process_line(current_line, lats_);
+          process_line(current_line, lats_, name);
         n_lats_ = lats_.size() - 1; // These are upper and lower bounds
         continue;
       }
@@ -270,7 +270,7 @@ void Environment::read_in_data(void) {
         long_file_found = true;
         boost::filesystem::ifstream file{iter->path()};
         while(getline(file, current_line)){
-          process_line(current_line, lons_);
+          process_line(current_line, lons_, name);
         }
         n_lons_ = lons_.size() - 1; // These are upper and lower bounds
         continue;
@@ -280,7 +280,7 @@ void Environment::read_in_data(void) {
         boost::filesystem::ifstream file{iter->path()};
         while(getline(file, current_line)){
           vector<double> temp_depths;
-          process_line(current_line, temp_depths);
+          process_line(current_line, temp_depths, name);
           depths_.push_back(pref_function(temp_depths, optimum_preference_, lower_preference_, upper_preference_));
         }
         continue;
@@ -290,14 +290,23 @@ void Environment::read_in_data(void) {
         boost::filesystem::ifstream file{iter->path()};
         while(getline(file, current_line)) {
           vector<unsigned> temp_regions;
-          process_line(current_line, temp_regions);
+          process_line(current_line, temp_regions, name);
           region_index_.push_back(temp_regions);
         }
         continue;
       }
+      if (name == "recruitment.txt") {
+        cout << "found recruitment.txt" << endl;
+        boost::filesystem::ifstream file{iter->path()};
+        while(getline(file, current_line)) {
+          vector<unsigned> temp_regions;
+          process_line(current_line, temp_regions, name);
+          recruitment_index_.push_back(temp_regions);
+        }
+        continue;
+      }
 
-      //
-      // We should only be going pass this point for year specific characteristics.
+      // We should only be going pass this point for 'year' specific layers.
       // Pull out the year and store it to do some checks later on.
       boost::split(file_name_parts, name, boost::is_any_of("."));
       cerr << "Year " << file_name_parts[0] << endl;
@@ -306,7 +315,8 @@ void Environment::read_in_data(void) {
         cerr << "failed to convert " << file_name_parts[0] << " to unsigned int, either the code is shit or you have characters or decimals in the file name" << endl;
         exit (EXIT_FAILURE);
       }
-      years_.push_back(temp_year);
+      if (not year_specific_variable)
+        years_.push_back(temp_year);
 
       // CHeck it isn't empty
       if (boost::filesystem::is_empty(iter->path())) {
@@ -327,8 +337,10 @@ void Environment::read_in_data(void) {
       unsigned lat_iter = 0;
       while(getline(file, current_line)){
         vector<double> row_vector;
-        process_line(current_line, row_vector);
-        if (dir == 1) {
+        process_line(current_line, row_vector, name);
+        if (dir == 2) {
+          catch_[temp_year].push_back(pref_function(row_vector, optimum_preference_, lower_preference_, upper_preference_));
+        } else if (dir == 2) {
           sst_[temp_year].push_back(pref_function(row_vector, optimum_preference_, lower_preference_, upper_preference_));
         }
 
@@ -342,6 +354,7 @@ void Environment::read_in_data(void) {
         cerr << "found " << (lat_iter) << " rows in file '" << name << "', when there should be " << n_lats_ <<  " please fix this " << endl;
         exit (EXIT_FAILURE);
       }
+      year_specific_variable = true;
     } // Directory in Dirs
   } // Dirs
 
@@ -354,21 +367,47 @@ void Environment::read_in_data(void) {
     exit (EXIT_FAILURE);
   }
 
+  // Tell the parameters what model domain is
   parameters.min_lat = lats_[0];
   parameters.max_lat = lats_[n_lats_];
   parameters.min_lon = lons_[0];
   parameters.max_lon = lons_[n_lons_];
 
+#ifdef DEBUG
   cerr << "min lat = " << parameters.min_lat << " max lat = " << parameters.max_lat << " min long = " << parameters.min_lon << " max long = " << parameters.max_lon << endl;
+#endif
   // No time varying preference layer so create time-invarying preference for each year.
   if (years_.size() <= 0) {
-    for(auto year = 1899; year <= 2019; ++year)
+    for(auto year = Years_min; year <= Years_max; ++year)
       years_.push_back(year);
   }
+
+  // calcualte cell mid_points
+  for (unsigned i = 0; i < n_lats_; ++i)
+    lat_mids_.push_back((lats_[i] + lats_[i+1])/2.0);
+  for (unsigned i = 0; i < n_lons_; ++i)
+    lon_mids_.push_back((lons_[i] + lons_[i+1])/2.0);
+
   //TODO
-  // Check lats_ and longs are consistent, we don't want an issue where we are accessing out of memory elements in any given year
+  // Check lats_ and longs are consistent across all layers, we don't want an issue where we are accessing out of memory elements in any given year
   // CHeck there is a preference for each year.
   // send an expression to the C++ error handler catch(),  currently just using the exit() call.
+
+  // populate the recruitment variables
+  for (unsigned i = 0; i < n_lats_; ++i) {
+    for (unsigned j = 0; j < n_lons_; ++j) {
+      if (recruitment_index_[i][j] >= 0) {
+        // Any value that is negative is not a suitable recruitment area
+        Region temp_region = Region(recruitment_index_[i][j]);
+#ifdef DEBUG
+        cout << "i = " << i << " j = " << j << " value " << recruitment_index_[i][j] << " region = " << temp_region << " lat = " << lat_mids_[i] << " lon = " << lon_mids_[j] << endl;
+#endif
+        recruitment_lats_[temp_region].push_back(lat_mids_[i]);
+        recruitment_lons_[temp_region].push_back(lon_mids_[j]);
+      }
+    }
+  }
+
 }
 
 /*
@@ -386,14 +425,14 @@ void Environment::calculate_preference_layer(void) {
       zonal_preference_by_year_[year][i].resize(n_lons_);
       meridional_preference_by_year_[year][i].resize(n_lons_);
       for (unsigned j = 0; j < n_lons_; ++j) {
-        preference_by_year_[year][i][j] = pow(sst_[year][i][j] * depths_[i][j], 0.5); // 0.5 = 1/n where n = 2 TODO add back in
+        preference_by_year_[year][i][j] = depths_[i][j]; // 0.5 = 1/n where n = 2 TODO add back in SST
         //cout << "i = " << i + 1 << " j = " << j + 1 << " preference = " << preference_by_year_[year][i][j] << endl;
       }
     }
   }
 }
 
-// Converts the region_index_ matrix -> matrix of stencilia Region dimensions.
+// Converts the region_index_ matrix ->matrix of stencilia Region dimensions.
 void Environment::convert_region_object(void) {
   region_.resize(n_lats_);
   for(unsigned i = 0; i < region_index_.size(); ++i) {
