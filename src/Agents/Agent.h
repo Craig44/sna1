@@ -40,6 +40,8 @@ class Agent {
       return method_last_;
     }
 
+    void                    set_scalar(double scalar) {scalar_ = scalar;};
+    double                  get_scalar(void) const {return scalar_;};
     /*************************************************************
      * Processes
      ************************************************************/
@@ -71,9 +73,10 @@ class Agent {
     Region region_;                      // Current region of this fish
     unsigned int tag_;                         // Tag number for fish
     short method_last_; // The method that this fish was last caught by (and released,because undersized or tag-release)
+    double                  scalar_ = 1.0;    // Population scalar, Used to scale the things like biomass etc from the size of `fishes` to the
 
   protected:
-    Environment* environemnt_ptr_ = nullptr;                // Give each fish a pointer to the environemnt
+    Environment* environemnt_ptr_ = nullptr;                // Give each fish a pointer to the environemnt for movement
 
 };
 // end class Agent

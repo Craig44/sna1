@@ -34,53 +34,67 @@ void Model::finalise(void) {
 }
 
 /*
- * I split this out of update() so that I could thread it using stl::thread, I tested you don't lose much speed with this method (1 second for a simple model with 850,000 agents)
-*/
-void Model::run_individual_processes(Monitor& monitor, Agents& agents, unsigned first_element, unsigned last_element, bool burnin) {
-  cout << "thread id = " << boost::this_thread::get_id() << endl;
+ * @fun run_individual_processes
+ * @description iterates over all agents, and if alive calculates processes that are defined at the agent level, I split this out of update() so that I could thread it
+ * @param monitor for reporting purposes TODO consider whether we want this here
+ * @param these_agents the class that is a vector of Agent classes (the partition)
+ * @param first_element the first element in the partition to iterate over
+ * @param last_element do not iterate to this point we iterate up to < last_element
+ * @param burnin are we in the initialisation period
+ */
+void Model::run_individual_processes(Monitor& monitor, std::vector<Agent>& these_agents, unsigned first_element, unsigned last_element, bool burnin) {
+#ifdef DEBUG
+  boost::unique_lock<boost::mutex> lock(mutex_); // lock workCount and condition
+  cout << "thread id = " << boost::this_thread::get_id() << " dealing with " << these_agents.size() << " agents first element " << first_element << " last element = " << last_element << endl;
+  lock.unlock();
+#endif
   /*****************************************************************
    * Agent population dynamics
    ****************************************************************/
-  if (parameters.preference_movement) {
-    for(unsigned i = first_element; i < last_element; ++i) {
-      if (agents[i].alive()) {
-        if (agents[i].survival()) {
-          agents[i].growth();
-          agents[i].maturation();
-          agents[i].movement();
-          agents[i].preference_movement();
-          agents[i].shedding();
+  /*  if (parameters.preference_movement) {
+   for(unsigned i = first_element; i < last_element; ++i) {
+   if (agents[i].alive()) {
+   if (agents[i].survival()) {
+   agents[i].growth();
+   agents[i].maturation();
+   agents[i].movement();
+   agents[i].preference_movement();
+   agents[i].shedding();
 
-          if (not burnin) {
-            boost::lock_guard<boost::mutex> lock(mutex_monitor_); // will unlock when out of scope
-            monitor.population(agents[i]);
-          }
-        }
-      }
-    }
-  } else {
-    for(unsigned i = first_element; i < last_element; ++i) {
-      if (agents[i].alive()) {
-        if (agents[i].survival()) {
-          agents[i].growth();
-          agents[i].maturation();
-          agents[i].movement();
-          //agents_[i].preference_movement();
-          agents[i].shedding();
-          if (not burnin) {
-            boost::lock_guard<boost::mutex> lock(mutex_monitor_2_); // will unlock when out of scope
-            monitor.population(agents[i]);
-          }
+   if (not burnin) {
+   boost::lock_guard<boost::mutex> lock(mutex_monitor_); // will unlock when out of scope
+   monitor.population(agents[i]);
+   }
+   }
+   }
+   }
+   } else {*/
+  for (unsigned i = first_element; i < last_element; ++i) {
+    if (these_agents[i].alive()) {
+      if (these_agents[i].survival()) {
+        these_agents[i].growth();
+        these_agents[i].maturation();
+        these_agents[i].movement();
+        //agents_[i].preference_movement();
+        these_agents[i].shedding();
+        if (not burnin) {
+          boost::lock_guard<boost::mutex> lock(mutex_monitor_2_); // will unlock when out of scope
+          monitor.population(these_agents[i]);
         }
       }
     }
   }
-/*  cout << "about to tell condition we are done job for thread = " << boost::this_thread::get_id() << endl;
-  boost::unique_lock<boost::mutex> lock(mutex_); // lock workCount and condition
-  workCount_--;
-  condition_.notify_all();
-  cout << "thread leaving = " << boost::this_thread::get_id() << endl;*/
 
+//  }
+
+  { // critical section for threading
+    boost::unique_lock<boost::mutex> lock(mutex_); // lock workCount and condition
+    workCount_--;
+#ifdef DEBUG
+    cout << workCount_ << " threading " << boost::this_thread::get_id() << endl;
+#endif
+    condition_.notify_all();
+  }
 }
 
 /**
@@ -117,66 +131,57 @@ void Model::update(void) {
 // Create and insert each recruit into the population
   unsigned int slot = 0;
   for (auto region : regions) {
-
     for (unsigned int index = 0; index < agents_.recruitment_instances_(region); index++) {
       Agent recruit;
       recruit.born(Region(region.index()), environemnt_);
-
+      // how does this agent scale
+      recruit.set_scalar(agents_.agents_scalar_);
       // Find a "slot" in population to insert this recruit
       // An empty 'slot' is created when previous agent in the partition die.
       // If no empty slot found add to end of agent population
-      while (slot < agents_.size()) {
-        if (not agents_[slot].alive()) {
-          agents_[slot] = recruit;
+      while (slot < agents_.partition_.size()) {
+        if (not agents_.partition_[slot].alive()) {
+          agents_.partition_[slot] = recruit;
           break;
         } else {
           slot++;
         }
       }
-      if (slot == agents_.size()) {
-        agents_.push_back(recruit);
+      if (slot == agents_.partition_.size()) {
+        agents_.partition_.push_back(recruit);
       }
     }
   }
+
 #ifdef DEBUG
-  cerr << "finished recruits" << endl;
+  cerr << "finished recruits, number of agents = " << agents_.partition_.size() << endl;
 #endif
+  //---------- Important variable -----------------//
+  workCount_ = 1; // number of tasks, this can be reset at junctions through out the code, so that we can thread anywhere
+  //agents_per_thread_ = 1000000;
+  //cout << "agents per thread " << agents_per_thread_ << " size of agent = " << agents_.partition_.size() << " the last bracket = " << agents_per_thread_ * 4 << " division = "
+  //    << round(agents_.partition_.size()) / workCount_ << " work count = " << workCount_ << endl;
+  // TODO try and make this dynamic to the number of tasks to send to the hendler, wrap it in a loop
+/*  io_service_.post(boost::bind(run_individual_processes, this, std::ref(monitor_), std::ref(agents_), 0, agents_per_thread_, burnin));
+  io_service_.post(boost::bind(run_individual_processes, this, std::ref(monitor_), std::ref(agents_), agents_per_thread_, (agents_per_thread_ * 2), burnin));
+  io_service_.post(boost::bind(run_individual_processes, this, std::ref(monitor_), std::ref(agents_), agents_per_thread_ * 2, (agents_per_thread_ * 3), burnin));
+  io_service_.post(boost::bind(run_individual_processes, this, std::ref(monitor_), std::ref(agents_), agents_per_thread_ * 3, (agents_per_thread_ * 4), burnin));
+  run_individual_processes(monitor_, agents_, (agents_per_thread_ * 4), agents_.partition_.size(), burnin);*/
 
-  //
-  workCount_ = n_child_threads_ + 1; // number of threads available child + main
+  //run_individual_processes(monitor_, agents_.partition_, 0, agents_.partition_.size(), burnin);
+  //io_service_.post(boost::bind(run_individual_processes, this, std::ref(monitor_), std::ref(agents_.partition_), 0, agents_per_thread_, burnin));
+  //io_service_.post(boost::bind(run_individual_processes, this, std::ref(monitor_), std::ref(agents_.partition_), agents_per_thread_, agents_per_thread_ * 2, burnin));
 
-  agents_per_thread_ = agents_.size() / 4;
-  cout << " agents per thread " << agents_per_thread_ << " size of agent = " << agents_.size() << " the last bracket = " << agents_per_thread_ * 4  << endl;
+  //io_service_.post(boost::bind(run_individual_processes, this, std::ref(monitor_), std::ref(agents_.partition_), agents_per_thread_, agents_.partition_.size(), burnin));
+  run_individual_processes(monitor_, agents_.partition_, 0, agents_.partition_.size(), burnin);
 
-/*
-  //run_individual_processes(0,agents_.size(), burnin);
-  // TODO try and make this dynamic to the number of threads available.
-  io_service_.post(boost::bind(run_individual_processes, this, std::ref(monitor_),std::ref(agents_), 0, agents_per_thread_, burnin));
-  io_service_.post(boost::bind(run_individual_processes, this, std::ref(monitor_),std::ref(agents_), agents_per_thread_, (agents_per_thread_ * 2), burnin));
-  io_service_.post(boost::bind(run_individual_processes, this, std::ref(monitor_),std::ref(agents_), agents_per_thread_ * 2, (agents_per_thread_ * 3), burnin));
-  io_service_.post(boost::bind(run_individual_processes, this, std::ref(monitor_),std::ref(agents_), agents_per_thread_ * 3, (agents_per_thread_ * 4), burnin));
-  //io_service_.post(boost::bind(run_individual_processes, this, std::ref(monitor_),std::ref(agents_), agents_per_thread_ * 4, (agents_per_thread_ * 5), burnin));
 
-  run_individual_processes(monitor_, agents_, agents_per_thread_ * 4, agents_.size(), burnin);
-
+  // Critical section for thread management
   {
-     boost::unique_lock<boost::mutex> lock(mutex_); // lock workCount and condition
-     condition_.wait(lock, [&]{ return workCount_ == 0; }); // Continue past this point if workCount_ == 0, if this will be dependent on the number of jobs you need to do.
-  }*/
+    boost::unique_lock<boost::mutex> lock(mutex_); // lock workCount and condition to check notify
+    condition_.wait(lock, [&] {return workCount_ == 0;}); // Continue past this point if workCount_ == 0, if this will be dependent on the number of jobs you send to the handler
+  }
 
-  agents_per_thread_ = 800000;
-  // An alternative to the boost library is use std::thread
-  std::thread t1(&run_individual_processes, this, std::ref(monitor_),std::ref(agents_), 0, agents_per_thread_, burnin);
-  std::thread t2(&run_individual_processes, this, std::ref(monitor_),std::ref(agents_), agents_per_thread_, (agents_per_thread_ * 2), burnin);
-  std::thread t3(&run_individual_processes, this, std::ref(monitor_),std::ref(agents_), agents_per_thread_ * 2, (agents_per_thread_ * 3), burnin);
-  std::thread t4(&run_individual_processes, this, std::ref(monitor_),std::ref(agents_), agents_per_thread_ * 3, (agents_per_thread_ * 4), burnin);
-  //std::thread t5(&run_individual_processes, this, std::ref(monitor_),std::ref(agents_), agents_per_thread_ * 4, agents_.size(), burnin);
-
-  t1.join();
-  t2.join();
-  t3.join();
-  t4.join();
-  //t5.join();
 #ifdef DEBUG
   cerr << "finished individuals processes" << endl;
 #endif
@@ -205,8 +210,8 @@ void Model::update(void) {
 
   while (releases_done < releases_targetted) {
     // Randomly choose a agent
-    Agent& agent = agents_[chance() * agents_.size()];
-    // If the agent is alive, and not yet tagged then...
+    Agent& agent = agents_.partition_[chance() * agents_.partition_.size()];
+    // If the agent is alive, and not yet tagged then..
     if (agent.alive() and not agent.get_tag() and agent.get_length() >= monitor_.tagging_.release_length_min_) {
       // Randomly choose a fishing method in the region the agent currently resides
       auto method = Method(methods.select(chance()).index());
@@ -228,7 +233,7 @@ void Model::update(void) {
       }
     }
     // Escape if too many trials
-    if (trials++ > agents_.size() * 100) {
+    if (trials++ > agents_.partition_.size() * 100) {
       cerr << trials << " " << releases_done << " " << releases_targetted << endl;
       throw runtime_error("Too many attempts to tag agent. Something is probably wrong.");
     }
@@ -255,9 +260,11 @@ void Model::update(void) {
     // If there was observed catch then randomly draw agent and "assign" them with varying probabilities
     // to a particular region/method catch
     while (catch_observed > 0) {
-
+#ifdef DEBUG
+      cerr << "Entering length based selectivity mortality process: yes" << endl;
+#endif
       // Randomly choose a agent
-      Agent& agent = agents_[chance() * agents_.size()];
+      Agent& agent = agents_.partition_[chance() * agents_.partition_.size()];
       // If the agent is alive, then...
       if (agent.alive()) {
         auto region = agent.get_region();
@@ -276,7 +283,7 @@ void Model::update(void) {
               agent.dies();
 
               // Add to catch taken for region/method
-              double fish_biomass = agent.weight() * agents_.get_scalar();
+              double fish_biomass = agent.weight() * agent.get_scalar();
               harvest_.catch_taken_(region, method) += fish_biomass;
               harvest_.catch_taken_by_year_(region, method, y) += fish_biomass;
 
@@ -292,7 +299,7 @@ void Model::update(void) {
               // Is this agent scanned for a tag?
               /*
                if (chance() < parameters.tagging_scanning(y, region, method)) {
-                 monitor.tagging.scan(agent, method);
+               monitor.tagging.scan(agent, method);
                }*/
             } else {
               // Does this agent die after released?
@@ -305,7 +312,7 @@ void Model::update(void) {
           }
         }
         harvest_.attempts_++;
-        if (harvest_.attempts_ > agents_.size() * 100) {
+        if (harvest_.attempts_ > agents_.partition_.size() * 100) {
           cerr << y << endl << "Catch taken so far:\n" << harvest_.catch_taken_ << endl << "Catch observed:\n" << harvest_.catch_observed_ << endl;
           throw runtime_error("Too many attempts to take catch. Something is probably wrong.");
         };
@@ -317,7 +324,7 @@ void Model::update(void) {
     while (catch_observed > 0) {
 
       // Randomly choose a agent
-      Agent& agent = agents_[chance() * agents_.size()];
+      Agent& agent = agents_.partition_[chance() * agents_.partition_.size()];
       // If the agent is alive, then...
       if (agent.alive()) {
         auto region = agent.get_region();
@@ -340,7 +347,7 @@ void Model::update(void) {
             agent.dies();
 
             // Add to catch taken for region/method
-            double fish_biomass = agent.weight() * agents_.get_scalar();
+            double fish_biomass = agent.weight() * agent.get_scalar();
             harvest_.catch_taken_(region, method) += fish_biomass;
             harvest_.catch_taken_by_year_(region, method, y) += fish_biomass;
 
@@ -355,7 +362,7 @@ void Model::update(void) {
             // Is this agent scanned for a tag?
             /*
              if (chance() < parameters.tagging_scanning(y, region, method)) {
-               monitor.tagging.scan(agent, method);
+             monitor.tagging.scan(agent, method);
              }*/
             //} else {
             // Does this agent die after released?
@@ -368,7 +375,7 @@ void Model::update(void) {
           }
         }
         harvest_.attempts_++;
-        if (harvest_.attempts_ > agents_.size() * 100) {
+        if (harvest_.attempts_ > agents_.partition_.size() * 100) {
           cerr << y << endl << "Catch taken so far:\n" << harvest_.catch_taken_ << endl << "Catch observed:\n" << harvest_.catch_observed_ << endl;
           throw runtime_error("Too many attempts to take catch. Something is probably wrong.");
         };
@@ -390,13 +397,14 @@ void Model::update(void) {
  * like `biomass_spawners_pristine` and `scalar`
  */
 void Model::pristine(Time time, function<void()>* callback, bool called_after_seed) {
-
-  cout << "size of an agent = " << sizeof(agents_[0]) << endl;
-// Set `now` to some arbitrary time (but high enough that agent
-// will have a birth time (unsigned int) greater than 0)
+  // start by seeding agents scalar = 1
+  agents_.seed(parameters.fishes_seed_number);
+  //agents_.set_scalar(1.0); //default scalar is 1.0 this shouldn't be needed
+  // Set `now` to some arbitrary time (but high enough that agent
+  // will have a birth time (unsigned int) greater than 0)
   now = 1;
-// Keep recruitment fixed at a constant level that will produce the
-// wanted `seed_number` of individuals in equilibrium
+  // Keep recruitment fixed at a constant level that will produce the
+  // wanted `seed_number` of individuals in equilibrium
   agents_.recruitment_mode_ = 'p';
   double number = 0;
   for (int age = 0; age < 200; age++)
@@ -409,9 +417,8 @@ void Model::pristine(Time time, function<void()>* callback, bool called_after_se
   for (auto region : regions) {
     agents_.recruitment_pristine_(region) = parameters.fishes_seed_number / number * parameters.fishes_b0(region) / sum(parameters.fishes_b0);
   }
-// start by seeding agents scalar = 1, find out where this gets updated through out the code
-  agents_.set_scalar(1.0);
-  agents_.seed(parameters.fishes_seed_number);
+
+
 // Burn in
 // TODO Currently just burns in for an arbitarty number of iterations
 // Should instead exit when stability in population characteristics
@@ -456,19 +463,18 @@ void Model::pristine(Time time, function<void()>* callback, bool called_after_se
 // The agent have arbitrary `birth` times so we need to "re-birth"
 // them so that the population is in equilbrium AND "current"
   auto diff = time - now;
-  for (auto& agent : agents_) {
+  for (auto& agent : agents_.partition_) {
     agent.set_birth(agent.get_birth() + diff);
   }
   now = time;
 // Set scalar so that the current spawner biomass
 // matches the intended value
-  agents_.set_scalar(sum(parameters.fishes_b0) / sum(agents_.biomass_spawners_));
-#ifdef DEBUG
-  cerr << "update scalar: " << agents_.get_scalar() << endl;
-#endif
+  double biomass_scalar = sum(parameters.fishes_b0) / sum(agents_.biomass_spawners_);
+  cout << "scalar = " << biomass_scalar << endl;
+  agents_.set_scalar(biomass_scalar);
 // Adjust accordingly
-  agents_.biomass_spawners_ *= agents_.get_scalar();
-  agents_.recruitment_pristine_ *= agents_.get_scalar();
+  agents_.biomass_spawners_ *= biomass_scalar;
+  agents_.recruitment_pristine_ *= biomass_scalar;
 // Go to "normal" recruitment
   agents_.recruitment_mode_ = 'n';
 }
@@ -496,7 +502,6 @@ void Model::run(Time start, Time finish, std::function<void()>* callback, int in
     // Currently as this code stands this will never get executed perhaps ask someone the purpose of this
     agents_.seed(1e6);
     pristine(start, callback, true);
-
   }
 
   // Have a look at

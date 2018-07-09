@@ -3,7 +3,7 @@
 // initialize static random engine to be shared by all instances of the Fish class
 using namespace std;
 
-int main(int argc, char** argv) {
+int main(int argc, char* argv[]) {
 #ifdef DEBUG
   cerr << "Enter main" << endl;
 #endif
@@ -16,14 +16,21 @@ int main(int argc, char** argv) {
     string task;
     if (argc >= 2) {
       task = argv[1];
+      if (argc == 3) {
+        int seed;
+        //seed = atoi(argv[2]);
+        //model.set_seed(seed);
+        //cout << "setting seed = " << seed << endl;
+      }
     }
+
     if (task == "run") {
       cout << "year\tfish alive(millions)\t size of population (total)\tstatus(%B0)\texprate\n";
-      cout << setprecision(2);
+      cout << setprecision(6);
       function < void() > callback([&]() {
         cout
         << now << "\t"
-        << model.agents_.number(false)/1e6 << "\t" << model.agents_.size()/1e6 << "\t"
+        << model.agents_.number(false)/1e6 << "\t" << model.agents_.partition_.size()/1e6 << "\t"
         << sum(model.agents_.biomass_spawners_)/sum(parameters.fishes_b0) << "\t"
         << sum(model.harvest_.catch_taken_)/sum(model.harvest_.biomass_vulnerable_) << endl;
       });

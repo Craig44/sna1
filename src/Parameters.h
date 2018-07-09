@@ -45,6 +45,8 @@ class Parameters : public Structure<Parameters> {
      * during development. Should be increased for final runs.
      */
     unsigned int fishes_seed_number = 1e6;
+
+    //int seed = 123; // The random number seed  this isn't being passed to Random, I am not sure how to do this because Random.h is not a class
     /**
      * Input variable which defines whether selectivity is age based or length based
      */
@@ -54,10 +56,10 @@ class Parameters : public Structure<Parameters> {
     /**
      * Input variable which defines whether selectivity is age based or length based
      */
-    double diffusion_parameter;
+    double diffusion_parameter = 0;
 
     // Derived parameter from the diffusion parameter
-    double standard_dev_for_preference;
+    double standard_dev_for_preference = 0;
 
     double max_lat;
     double min_lat;
@@ -65,17 +67,17 @@ class Parameters : public Structure<Parameters> {
     double max_lon;
     double min_lon;
     // preference parameters
-    double sst_optimum;
-    double sst_lower;
-    double sst_upper;
+    double sst_optimum = 0;
+    double sst_lower = 0;
+    double sst_upper = 0;
     // depth
-    double depth_optimum;
-    double depth_lower;
-    double depth_upper;
+    double depth_optimum = 0;
+    double depth_lower = 0;
+    double depth_upper = 0;
     // npp
-    double npp_optimum;
-    double npp_lower;
-    double npp_upper;
+    double npp_optimum = 0;
+    double npp_lower = 0;
+    double npp_upper = 0;
 
     Uniform fishes_seed_region_dist;
 
@@ -275,9 +277,13 @@ class Parameters : public Structure<Parameters> {
                 p = 1;
             fishes_maturation(age) = p;
         }
+        //harvest_sel_steep1(LL) = 4.51008;
+        //harvest_sel_mode(LL) = 4.345;
+        //harvest_sel_steep2(LL) = 20;
+
         harvest_sel_steep1(LL) = 4.51008;
         harvest_sel_mode(LL) = 4.345;
-        harvest_sel_steep2(LL) = 20;
+        harvest_sel_steep2(LL) = 1000;
 
         harvest_sel_steep1(BT) = 2.35;
         harvest_sel_mode(BT) = 29.39;

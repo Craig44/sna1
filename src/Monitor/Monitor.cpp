@@ -52,7 +52,7 @@ void Monitor::catch_sample(Region region, Method method, const Agent& agent) {
  * Passed Fishes by reference and
  */
 void Monitor::update_initial_partition(const Agents& agents) {
-  for (auto agent : agents) {
+  for (auto agent : agents.partition_) {
     if (agent.alive()) {
       initial_numbers_at_age_(agent.age_bin(), agent.get_region())++;}
     }
@@ -62,7 +62,7 @@ void Monitor::update_initial_partition(const Agents& agents) {
    */
 void Monitor::update(const Agents& agents, const Harvest& harvest) {
   auto y = year(now);
-  for (Agent agent : agents) {
+  for (Agent agent : agents.partition_) {
     if (agent.alive())
       numbers_at_age_(y, agent.get_region(), agent.age_bin())++;}
 

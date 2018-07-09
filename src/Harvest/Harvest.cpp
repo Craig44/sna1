@@ -16,9 +16,13 @@ void Harvest::initialise(void) {
         else
           selectivity = std::pow(2, -std::pow((length - mode) / steep2, 2));
         selectivity_at_length_(method, length_bin) = selectivity;
+
+#ifdef DEBUG
+        cerr << "Method = " << method << " length bin = " << length << ": " << selectivity_at_length_(method, length_bin) << " " << selectivity << endl;
+#endif
       }
     } else {
-      bool double_normal = false;
+      bool double_normal = false;  //TODO move into paraemters.h
       double selectivity = 0;
       auto steep1 = parameters.harvest_sel_steep1(method);
       auto mode = parameters.harvest_sel_mode(method);
@@ -75,28 +79,26 @@ void Harvest::finalise(void) {
 void Harvest::biomass_vulnerable_update(const Agents& agents) {
   biomass_vulnerable_ = 0;
   if (parameters.length_based_selectivity) {
-    for (const Agent& agent : agents) {
+    for (const Agent& agent : agents.partition_) {
       if (agent.alive()) {
         auto weight = agent.weight();
         auto length_bin = agent.length_bin();
         for (auto method : methods) {
-          biomass_vulnerable_(agent.get_region(), method) += weight
-              * selectivity_at_length_(method, length_bin);
+          biomass_vulnerable_(agent.get_region(), method) += weight * agent.get_scalar()  * selectivity_at_length_(method, length_bin);
         }
       }
     }
   } else {
-    for (const Agent& agent : agents) {
+    for (const Agent& agent : agents.partition_) {
       if (agent.alive()) {
         auto weight = agent.weight();
         auto age_bin = agent.age_bin();
         for (auto method : methods) {
-          biomass_vulnerable_(agent.get_region(), method) += weight * selectivity_at_age_(method, age_bin);
+          biomass_vulnerable_(agent.get_region(), method) += weight * agent.get_scalar() * selectivity_at_age_(method, age_bin);
         }
       }
     }
   }
-  biomass_vulnerable_ *= agents.get_scalar();
 }
 
 void Harvest::catch_observed_update(void) {

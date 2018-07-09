@@ -14,7 +14,6 @@
  * Initialise parameters etc
  */
 void Agents::initialise(void) {
-  // Create a pointer to the environment class so we can get preference values by space and time.
 }
 
 
@@ -25,17 +24,16 @@ void Agents::finalise(void) {
   // print end point of fish that are alive
   std::ofstream agent_attributes("output/fishes/attributes.tsv");
   agent_attributes << "latitude longitude alive region length age\n";
-  for (auto& agent : *this) {
+  for (auto& agent : partition_) {
     agent_attributes << agent.latitude_ << " " << agent.longitude_ << " " << agent.alive() << " " << agent.region_ << " " << agent.length_ << " " << agent.age() << endl;
   }
 
 
   std::ofstream values("output/fishes/values.tsv");
   values << "name\tvalue" << std::endl
-         << "fishes_size\t" << size() << std::endl
+         << "fishes_size\t" << partition_.size() << std::endl
          << "fish_bytes\t" << sizeof(Agent) << std::endl
          << "alive\t" << number(false) << std::endl
-         << "scalar\t" << scalar_ << std::endl
          << "number\t" << number(true) << std::endl;
 
   // Generate some example growth trajectories for checking
@@ -71,32 +69,34 @@ void Agents::finalise(void) {
  * but is a separate method so that it can also be used in unit tests.
  */
 void Agents::seed(unsigned int number) {
-    clear();
-    resize(number);
-    for (auto& agent : *this) {
+    partition_.clear();
+    partition_.resize(number);
+    cout << "number of agents = " << partition_.size() << endl;
+    unsigned count = 0;
+    for (auto& agent : partition_) {
       agent.seed(model_->get_environment_ptr());
+      ++count;
     }
+    cout << "seeded '" << count << "' seeded" << endl;
 }
 
 
 void Agents::biomass_update(void) {
     biomass_ = 0.0;
-    for (auto& agent : *this){
+    for (auto& agent : partition_){
         if (agent.alive()) {
-            biomass_ += agent.weight();
+            biomass_ += agent.weight() * agent.get_scalar();
         }
     }
-    biomass_ *= scalar_;
 }
 
 void Agents::biomass_spawners_update(void) {
     biomass_spawners_ = 0.0;
-    for (auto& agent : *this){
+    for (auto& agent : partition_){
         if (agent.alive() and agent.mature_) {
-            biomass_spawners_(agent.region_) += agent.weight();
+            biomass_spawners_(agent.region_) += agent.weight() * agent.get_scalar();
         }
     }
-    biomass_spawners_ *= scalar_;
 }
 
 
@@ -105,10 +105,10 @@ void Agents::recruitment_update(void) {
     auto y = year(now);
     for(auto region : regions) {
         if (recruitment_mode_ == 'p') {
-            recruitment_(region) = recruitment_pristine_(region) / scalar_;
+            recruitment_(region) = recruitment_pristine_(region) / agents_scalar_;
         } else {
             auto s = biomass_spawners_(region);
-            auto r0 = recruitment_pristine_(region) / scalar_;
+            auto r0 = recruitment_pristine_(region) / agents_scalar_;
             auto s0 = parameters.fishes_b0(region);
             auto h = parameters.fishes_steepness;
             auto determ = 4*h*r0*s/((5*h-1)*s+s0*(1-h));
@@ -137,12 +137,12 @@ void Agents::recruitment_update(void) {
  */
 double Agents::number(bool scale) {
     auto sum = 0.0;
-    for (auto& agent : *this){
+    for (auto& agent : partition_){
         if (agent.alive()) {
             sum++;
         }
     }
-    return sum * (scale ? scalar_ : 1);
+    return sum * (scale ? agents_scalar_ : 1);
 }
 
 /**
@@ -150,7 +150,7 @@ double Agents::number(bool scale) {
  */
 double Agents::age_mean(void) {
     Mean mean;
-    for (auto& agent : *this){
+    for (auto& agent : partition_){
         if (agent.alive())
             mean.append(agent.age_bin());
     }
@@ -162,7 +162,7 @@ double Agents::age_mean(void) {
  */
 double Agents::length_mean(void) {
     Mean mean;
-    for (auto& agent : *this) {
+    for (auto& agent : partition_){
         if (agent.alive())
            mean.append(agent.length_);
     }
@@ -174,7 +174,7 @@ double Agents::length_mean(void) {
  */
 void Agents::enumerate(void) {
     counts_ = 0;
-    for (auto& agent : *this) {
+    for (auto& agent : partition_) {
         if(agent.alive()){
             counts_(
                 agent.region_,
@@ -184,6 +184,17 @@ void Agents::enumerate(void) {
             )++;
         }
     }
+}
+
+/**
+ * A function to set the scalar for all individuals.
+ */
+
+void Agents::set_scalar(double scalar) {
+  for (auto& agent : partition_) {
+    agent.set_scalar(scalar);
+  }
+  agents_scalar_ = scalar;
 }
 
 /**

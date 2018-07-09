@@ -83,7 +83,7 @@ requires: requires/boost/lib requires/stencila requires/r-packages.installed
 # Executables
 $(info entering executable)
 # Define compile options and required libraries
-CXX_FLAGS := -std=c++11 -Wall -Wno-unused-function -Wno-unused-local-typedefs -Wno-unused-variable -pthread
+CXX_FLAGS := -std=c++14 -Wall -Wno-unused-function -Wno-unused-local-typedefs -Wno-unused-variable -pthread
 INC_DIRS := -I. -Irequires/boost -Irequires/stencila 
 
 ifeq ($(OS), linux)
@@ -105,7 +105,7 @@ ifeq ($(OS), win)
 	sub_dir := $(shell find_linux src -type d)
 	INC_DIRS += $(addprefix  -I,  $(sub_dir))
 	LIB_DIRS := -Lrequires/boost/lib
-	LIBS := -lboost_system -lboost_filesystem -lboost_thread -lws2_32 -pthread
+	LIBS := -lboost_system -lboost_filesystem -lboost_thread -lws2_32
 	TEST_LIB := -lboost_unit_test_framework-mgw51-mt-1_62
 endif
 
@@ -115,7 +115,7 @@ $(info main $(main))
 
 # Executable for normal use
 sna1.exe: $(SRC)
-	$(CXX) $(CXX_FLAGS) -O3 $(INC_DIRS) -DDEBUG -o$@ $(main) $(LIB_DIRS) $(LIBS)
+	$(CXX) $(CXX_FLAGS) -O3 $(INC_DIRS) -g -o$@ $(main) $(LIB_DIRS) $(LIBS)
 
 # Executable for debugging
 sna1.debug: $(SRC) requires

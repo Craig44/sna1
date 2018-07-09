@@ -13,7 +13,6 @@
 #include <string>
 #include <cstdlib>
 #include <ctime>
-#include <thread>
 // Boost library
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>

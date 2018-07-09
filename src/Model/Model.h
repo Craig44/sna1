@@ -48,12 +48,13 @@ class Model {
       threads_.join_all();
       delete work_ctrl_;
     }
-    void run_individual_processes(Monitor& monitor, Agents& agents, unsigned first_element, unsigned last_element, bool burnin);
+    void run_individual_processes(Monitor& monitor,std::vector<Agent>& agents, unsigned first_element, unsigned last_element, bool burnin);
     void initialise(void);
     void finalise(void);
     void update(void);
     void pristine(Time time, function<void()>* callback = 0, bool called_after_seed = false);
     void run(Time start, Time finish, std::function<void()>* callback = 0,int initial = 0);
+    //void set_seed(int seed) {parameters.seed = seed; }
     Environment*  get_environment_ptr(void) const {return environemnt_;}
   private:
     int defualt_value_ = 0;
@@ -64,6 +65,7 @@ class Model {
     unsigned n_child_threads_;
     int workCount_;
     boost::mutex mutex_;
+    // Mutex for monitor class, they are mutually exclusive so we can probably deduce this to one mutex TODO
     boost::mutex mutex_monitor_;
     boost::mutex mutex_monitor_2_;
     boost::condition_variable condition_;

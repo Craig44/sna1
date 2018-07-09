@@ -18,7 +18,7 @@ class Agents : public std::vector<Agent> {
   public:
     // constructor that sets intial vector of fishes = size.
     Agents(int size, Model* model) :
-      std::vector<Agent>(size, Agent()),
+      partition_(size, Agent()),
       model_(model)
     {}
 
@@ -29,8 +29,8 @@ class Agents : public std::vector<Agent> {
     void                    biomass_update(void);
     void                    biomass_spawners_update(void);
     // Accessors
-    void                    set_scalar(double scalar) {scalar_ = scalar;};
-    double                  get_scalar(void) const {return scalar_;};
+    void                    set_scalar(double scalar);
+
     double                  get_biomass(void) const {return biomass_;};
     void                    set_biomass(double biomass) {biomass_ = biomass;};
     void                    recruitment_update(void);
@@ -40,18 +40,20 @@ class Agents : public std::vector<Agent> {
     void                    enumerate(void);
     void                    track(void);
 
+
     // Public containers Sruggling to implement accessors for the stencilia objects I get cant'convert stencilia::Level<Region> -> Region
     Array<double, Regions>  biomass_spawners_;
     char                    recruitment_mode_ = 'n';
     Array<double, Regions>  recruitment_pristine_;
     Array<double, Regions>  recruitment_;
     Array<unsigned int, Regions> recruitment_instances_;
-
+    std::vector<Agent>      partition_;
+    double                  agents_scalar_ = 1.0; // used for the recruitment dynamic
   private:
-    double                  scalar_ = 1.0;    // Population scalar, Used to scale the things like biomass etc from the size of `fishes` to the
     double                  biomass_ = 1.0;         //Current total biomass (t)
     Array<unsigned int,Regions,Sexes,Ages,Lengths> counts_;
     Model*                  model_ = nullptr;
+
 };  // end class Agents
 
 
